@@ -55,6 +55,7 @@
     }
   },
   "javascript": {
+    "globals": ["browser", "defineBackground", "defineContentScript"],
     "formatter": {
       "arrowParentheses": "always",
       "bracketSameLine": false,

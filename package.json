@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@heroui/react": "^3.0.3",
+    "@heroui/styles": "^3.0.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
@@ -24,6 +26,7 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
+    "test": "bun test lib/",
     "postinstall": "wxt prepare",
     "check": "ultracite check",
     "fix": "ultracite fix",

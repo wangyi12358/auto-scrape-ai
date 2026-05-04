@@ -94,6 +94,15 @@ export type BridgeMessage =
 			payload: Record<string, never>;
 	  };
 
+export function createSettingsUpdatedMessage(
+	settings: ExtensionSettings,
+): Extract<BridgeMessage, { type: typeof BridgeMessageType.SETTINGS_UPDATED }> {
+	return {
+		type: BridgeMessageType.SETTINGS_UPDATED,
+		payload: { settings },
+	};
+}
+
 export function isBridgeMessage(value: unknown): value is BridgeMessage {
 	if (!value || typeof value !== 'object') {
 		return false;

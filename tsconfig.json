@@ -4,5 +4,6 @@
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "strictNullChecks": true
-  }
+  },
+  "exclude": [".output", "**/*.test.ts"]
 }

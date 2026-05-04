@@ -25,9 +25,9 @@
 
 ## 验收清单
 
-- [ ] 对 Filter / Refiner 写**单元测试**（Vitest 或 Node `assert`），覆盖：扩展名排除、方法过滤、JSON 数组截断、非法 JSON。
-- [ ] 函数无副作用、无 `window` / `chrome` 依赖。
-- [ ] 导出清晰的 API，例如：`passesFilter(req, settings)`、`refineRequest(req, settings)`。
+- [x] 对 Filter / Refiner 写**单元测试**（Vitest 或 Node `assert`），覆盖：扩展名排除、方法过滤、JSON 数组截断、非法 JSON。
+- [x] 函数无副作用、无 `window` / `chrome` 依赖。
+- [x] 导出清晰的 API，例如：`passesFilter(req, settings)`、`refineRequest(req, settings)`。
 
 ## 依赖
 

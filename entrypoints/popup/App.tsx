@@ -1,35 +1,22 @@
+import { Button, Surface, Text } from '@heroui/react';
 import { useState } from 'react';
-import reactLogo from '@/assets/react.svg';
-import wxtLogo from '/wxt.svg';
-import './App.css';
 
-function App() {
+export default function App() {
 	const [count, setCount] = useState(0);
-
 	return (
-		<>
-			<div>
-				<a href='https://wxt.dev' rel='noopener' target='_blank'>
-					<img alt='WXT logo' className='logo' src={wxtLogo} />
-				</a>
-				<a href='https://react.dev' rel='noopener' target='_blank'>
-					<img alt='React logo' className='logo react' src={reactLogo} />
-				</a>
-			</div>
-			<h1>WXT + React</h1>
-			<div className='card'>
-				<button onClick={() => setCount((count) => count + 1)}>
-					count is {count}
-				</button>
-				<p>
-					Edit <code>src/App.tsx</code> and save to test HMR
-				</p>
-			</div>
-			<p className='read-the-docs'>
-				Click on the WXT and React logos to learn more
-			</p>
-		</>
+		<Surface.Root className='w-80 space-y-3 p-4' variant='default'>
+			<Text.Root className='font-semibold'>Auto Scrape AI</Text.Root>
+			<Button onPress={() => setCount((c) => c + 1)} variant='primary'>
+				count is {count}
+			</Button>
+			<Button
+				onPress={() => {
+					browser.runtime.openOptionsPage();
+				}}
+				variant='secondary'
+			>
+				打开设置
+			</Button>
+		</Surface.Root>
 	);
 }
-
-export default App;
