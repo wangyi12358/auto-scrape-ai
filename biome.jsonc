@@ -1,0 +1,82 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "files": {
+    "ignoreUnknown": false
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "tab"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "performance": {
+        "useTopLevelRegex": "off",
+        "noBarrelFile": "off",
+        "noImgElement": "off",
+        "noNamespaceImport": "off"
+      },
+      "complexity": {
+        "noForEach": "off",
+        "noExcessiveCognitiveComplexity": "off"
+      },
+      "style": {
+        "useBlockStatements": "off",
+        "noNestedTernary": "off"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "warn",
+        "noUnusedVariables": "warn",
+        "noNestedComponentDefinitions": "off"
+      },
+      "a11y": {
+        "useSemanticElements": "off",
+        "useKeyWithClickEvents": "off",
+        "noNoninteractiveElementInteractions": "off",
+        "noRedundantRoles": "off",
+        "noStaticElementInteractions": "off",
+        "useValidAnchor": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noArrayIndexKey": "warn"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "arrowParentheses": "always",
+      "bracketSameLine": false,
+      "bracketSpacing": true,
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "single",
+      "quoteProperties": "asNeeded",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/next"
+  ]
+}
