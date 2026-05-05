@@ -2,9 +2,27 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Auto Scrape AI — DevTools</title>
 	</head>
 	<body>
+		<h1>Network capture</h1>
+		<p class="hint">
+			Open the inspected page’s Network tab and reload or interact. Filtered-out
+			static requests (per Options) are skipped before reading the response
+			body.
+		</p>
+		<div class="row">
+			<button type="button" id="record-toggle" aria-pressed="false">
+				Start recording
+			</button>
+		</div>
+		<div class="stats" id="stats">
+			<div>Requests finished: <strong id="stat-total">0</strong></div>
+			<div>Skipped (filter): <strong id="stat-skipped">0</strong></div>
+			<div>Passed filter: <strong id="stat-passed">0</strong></div>
+			<div>Body read issues: <strong id="stat-body-fail">0</strong></div>
+		</div>
 		<script type="module" src="./main.ts"></script>
 	</body>
 </html>
