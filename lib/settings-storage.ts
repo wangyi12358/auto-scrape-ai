@@ -134,6 +134,9 @@ export function mergeExtensionSettingsFromStored(
 		if (typeof raw.ai.apiKey === 'string') {
 			next.ai.apiKey = raw.ai.apiKey;
 		}
+		if (typeof raw.ai.baseUrl === 'string' && raw.ai.baseUrl.trim()) {
+			next.ai.baseUrl = raw.ai.baseUrl.trim();
+		}
 		if (typeof raw.ai.model === 'string' && raw.ai.model.trim()) {
 			next.ai.model = raw.ai.model.trim();
 		}
@@ -225,6 +228,9 @@ export function validateExtensionSettings(s: ExtensionSettings): string[] {
 
 	if (!s.ai.model.trim()) {
 		errors.push('Model id cannot be empty');
+	}
+	if (!s.ai.baseUrl.trim()) {
+		errors.push('Base URL cannot be empty');
 	}
 
 	if (

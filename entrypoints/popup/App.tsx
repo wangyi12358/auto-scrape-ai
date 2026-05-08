@@ -1,22 +1,23 @@
-import { Button, Surface, Text } from '@heroui/react';
+import { Button, Card, Typography } from 'antd';
 import { useState } from 'react';
 
 export default function App() {
 	const [count, setCount] = useState(0);
 	return (
-		<Surface.Root className='w-80 space-y-3 p-4' variant='default'>
-			<Text.Root className='font-semibold'>Auto Scrape AI</Text.Root>
-			<Button onPress={() => setCount((c) => c + 1)} variant='primary'>
-				count is {count}
-			</Button>
-			<Button
-				onPress={() => {
-					browser.runtime.openOptionsPage();
-				}}
-				variant='secondary'
-			>
-				打开设置
-			</Button>
-		</Surface.Root>
+		<Card className='w-80' styles={{ body: { padding: 16 } }}>
+			<Typography.Text strong>Auto Scrape AI</Typography.Text>
+			<div className='mt-3 flex flex-col gap-3'>
+				<Button onClick={() => setCount((c) => c + 1)} type='primary'>
+					count is {count}
+				</Button>
+				<Button
+					onClick={() => {
+						browser.runtime.openOptionsPage();
+					}}
+				>
+					打开设置
+				</Button>
+			</div>
+		</Card>
 	);
 }

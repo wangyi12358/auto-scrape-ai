@@ -3,11 +3,41 @@ import type { ExtensionSettings } from './settings';
 /**
  * Sensible defaults until Options (task 04) writes user overrides.
  */
+type EnvMap = Record<string, string | undefined>;
+
+function readEnv(): EnvMap {
+	return (import.meta as ImportMeta & { env?: EnvMap }).env ?? {};
+}
+
+function envString(key: string, fallback: string): string {
+	const value = readEnv()[key]?.trim();
+	return value ? value : fallback;
+}
+
+function envStringList(key: string, fallback: string[]): string[] {
+	const raw = readEnv()[key];
+	if (!raw?.trim()) {
+		return fallback;
+	}
+	const list = raw
+		.split(/[\n,]+/)
+		.map((x) => x.trim())
+		.filter(Boolean);
+	return list.length ? list : fallback;
+}
+
 export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
 	settingsVersion: 1,
 	filter: {
-		includeDomainRules: [{ kind: 'current-tab-host' }],
+		includeDomainRules: envStringList('WXT_DEFAULT_INCLUDE_RULES', [
+			'current-tab-host',
+		]).map((rule) =>
+			rule.toLowerCase() === 'current-tab-host'
+				? { kind: 'current-tab-host' as const }
+				: { kind: 'regex' as const, pattern: rule },
+		),
 		excludeExtensions: [
+			'.js',
 			'.jpg',
 			'.jpeg',
 			'.png',
@@ -32,11 +62,21 @@ export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
 		arrayTruncationCount: 2,
 	},
 	analysis: {
-		targetLanguage: 'python',
-		schemaType: 'typescript-interface',
+		targetLanguage: envString(
+			'WXT_DEFAULT_TARGET_LANGUAGE',
+			'python',
+		) as ExtensionSettings['analysis']['targetLanguage'],
+		schemaType: envString(
+			'WXT_DEFAULT_SCHEMA_TYPE',
+			'typescript-interface',
+		) as ExtensionSettings['analysis']['schemaType'],
 	},
 	ai: {
-		apiKey: '',
-		model: 'gpt-4.1-mini',
+		apiKey: envString('WXT_DEFAULT_OPENAI_API_KEY', ''),
+		baseUrl: envString(
+			'WXT_DEFAULT_OPENAI_BASE_URL',
+			'https://api.openai.com/v1',
+		),
+		model: envString('WXT_DEFAULT_OPENAI_MODEL', 'gpt-4.1-mini'),
 	},
 };

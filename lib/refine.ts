@@ -43,16 +43,43 @@ function filterHeaders(
 
 const JSON_PARSE_MAX_CHARS = 2_000_000;
 
+function arrayItemSignature(value: unknown): string {
+	if (Array.isArray(value)) {
+		return 'array';
+	}
+	if (value !== null && typeof value === 'object') {
+		return `object:${Object.keys(value as Record<string, unknown>)
+			.sort()
+			.join(',')}`;
+	}
+	return `${typeof value}:${String(value)}`;
+}
+
 /**
  * Recursively truncates **every JSON array** to at most `maxItems` elements.
+ * Arrays additionally drop repeated items with the same structural signature
+ * (especially useful for arrays of same-shape objects).
  * Objects are walked depth-first; non-array leaves unchanged.
  * If `maxItems <= 0`, arrays become empty (explicit product choice — document in UI later).
  */
 export function truncateJsonArrays(value: unknown, maxItems: number): unknown {
 	if (Array.isArray(value)) {
 		const cap = Math.max(0, maxItems);
-		const sliced = value.slice(0, cap);
-		return sliced.map((item) => truncateJsonArrays(item, maxItems));
+		const out: unknown[] = [];
+		const seen = new Set<string>();
+		for (const item of value) {
+			const reduced = truncateJsonArrays(item, maxItems);
+			const sig = arrayItemSignature(reduced);
+			if (seen.has(sig)) {
+				continue;
+			}
+			seen.add(sig);
+			out.push(reduced);
+			if (out.length >= cap) {
+				break;
+			}
+		}
+		return out;
 	}
 	if (value !== null && typeof value === 'object') {
 		const out: Record<string, unknown> = {};

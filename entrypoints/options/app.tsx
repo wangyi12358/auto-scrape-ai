@@ -1,20 +1,17 @@
 import {
 	Alert,
 	Button,
+	Card,
 	Checkbox,
-	Description,
-	Fieldset,
+	Col,
 	Input,
-	Label,
-	ListBox,
-	NumberField,
+	InputNumber,
+	Row,
 	Select,
-	Spinner,
-	Surface,
-	Text,
-	TextArea,
-	TextField,
-} from '@heroui/react';
+	Space,
+	Spin,
+	Typography,
+} from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import {
 	EXTENSION_SETTINGS_STORAGE_KEY,
@@ -182,9 +179,9 @@ export default function App() {
 
 	if (!settings) {
 		return (
-			<div className='flex min-h-screen items-center justify-center gap-3 text-muted'>
-				<Spinner color='accent' size='md' />
-				<Text.Root>加载中…</Text.Root>
+			<div className='flex min-h-screen items-center justify-center gap-3'>
+				<Spin />
+				<Typography.Text type='secondary'>加载中…</Typography.Text>
 			</div>
 		);
 	}
@@ -192,263 +189,237 @@ export default function App() {
 	return (
 		<div className='mx-auto max-w-3xl space-y-6 px-4 py-8 text-foreground'>
 			<header className='space-y-1'>
-				<h1 className='font-semibold text-2xl text-foreground'>
-					Auto Scrape AI 设置
-				</h1>
-				<Text.Root className='text-muted' size='sm'>
+				<Typography.Title level={3}>Auto Scrape AI 设置</Typography.Title>
+				<Typography.Text type='secondary'>
 					配置保存在本机的 storage.local，不会通过 Chrome 同步（避免 API Key
 					离开本机）。
-				</Text.Root>
+				</Typography.Text>
 			</header>
 
-			<Surface.Root className='space-y-6 p-6' variant='default'>
-				<div className='space-y-1'>
-					<Text.Root className='font-medium text-lg'>AI 连接</Text.Root>
-				</div>
-
-				<TextField.Root
-					onChange={(v) =>
-						setSettings({ ...settings, ai: { ...settings.ai, apiKey: v } })
-					}
-					value={settings.ai.apiKey}
-				>
-					<Label.Root>API Key</Label.Root>
-					<Input.Root autoComplete='off' placeholder='sk-…' type='password' />
-				</TextField.Root>
-
-				<div className='grid gap-4 sm:grid-cols-2'>
-					<Select.Root
-						onSelectionChange={(key) => {
-							const k = key == null ? '' : String(key);
-							setModelChoice(k);
-						}}
-						selectedKey={modelChoice}
-					>
-						<Label.Root>模型</Label.Root>
-						<Select.Trigger className='mt-1'>
-							<Select.Value />
-							<Select.Indicator />
-						</Select.Trigger>
-						<Select.Popover>
-							<ListBox.Root>
-								{PRESET_MODELS.map((m) => (
-									<ListBox.Item id={m} key={m} textValue={m}>
-										{m}
-									</ListBox.Item>
-								))}
-								<ListBox.Item id='__custom__' textValue='自定义'>
-									自定义…
-								</ListBox.Item>
-							</ListBox.Root>
-						</Select.Popover>
-					</Select.Root>
-
-					{modelChoice === '__custom__' ? (
-						<TextField.Root
-							onChange={(v) => setCustomModel(v)}
-							value={customModel}
-						>
-							<Label.Root>自定义模型 ID</Label.Root>
-							<Input.Root
-								placeholder='例如 my-gateway/model-name'
-								type='text'
+			<Card title='AI 连接'>
+				<Space className='w-full' direction='vertical' size='middle'>
+					<div>
+						<div className='mb-1 font-medium'>API Key</div>
+						<Input.Password
+							autoComplete='off'
+							onChange={(e) =>
+								setSettings({
+									...settings,
+									ai: { ...settings.ai, apiKey: e.target.value },
+								})
+							}
+							placeholder='sk-…'
+							value={settings.ai.apiKey}
+						/>
+					</div>
+					<div>
+						<div className='mb-1 font-medium'>Base URL</div>
+						<Input
+							onChange={(e) =>
+								setSettings({
+									...settings,
+									ai: { ...settings.ai, baseUrl: e.target.value },
+								})
+							}
+							placeholder='https://api.openai.com/v1'
+							value={settings.ai.baseUrl}
+						/>
+					</div>
+					<Row gutter={16}>
+						<Col span={12}>
+							<div className='mb-1 font-medium'>模型</div>
+							<Select
+								className='w-full'
+								onChange={(v) => setModelChoice(v)}
+								options={[
+									...PRESET_MODELS.map((m) => ({ label: m, value: m })),
+									{ label: '自定义…', value: '__custom__' },
+								]}
+								value={modelChoice}
 							/>
-						</TextField.Root>
-					) : null}
-				</div>
-			</Surface.Root>
+						</Col>
+						{modelChoice === '__custom__' ? (
+							<Col span={12}>
+								<div className='mb-1 font-medium'>自定义模型 ID</div>
+								<Input
+									onChange={(e) => setCustomModel(e.target.value)}
+									placeholder='例如 my-gateway/model-name'
+									value={customModel}
+								/>
+							</Col>
+						) : null}
+					</Row>
+				</Space>
+			</Card>
 
-			<Surface.Root className='space-y-6 p-6' variant='default'>
-				<Text.Root className='font-medium text-lg'>过滤</Text.Root>
+			<Card title='过滤'>
+				<Space className='w-full' direction='vertical' size='middle'>
+					<div>
+						<div className='mb-1 font-medium'>Include 域名 / 主机规则</div>
+						<Typography.Text type='secondary'>
+							每行一条：普通行为正则（匹配主机名）；单独一行写 current-tab-host
+							表示使用当前 DevTools 所检查标签页的域名。
+						</Typography.Text>
+						<Input.TextArea
+							className='mt-2'
+							onChange={(e) => setIncludeText(e.target.value)}
+							rows={6}
+							spellCheck={false}
+							value={includeText}
+						/>
+					</div>
+					<div>
+						<div className='mb-1 font-medium'>排除扩展名</div>
+						<Typography.Text type='secondary'>
+							逗号或换行分隔，可带或不带前导点（保存时会规范为小写 + 前导点）。
+						</Typography.Text>
+						<Input.TextArea
+							className='mt-2'
+							onChange={(e) => setExcludeText(e.target.value)}
+							rows={4}
+							spellCheck={false}
+							value={excludeText}
+						/>
+					</div>
+					<div>
+						<div className='mb-2 font-medium'>HTTP 方法</div>
+						<Space size='middle' wrap>
+							{HTTP_METHODS.map((m) => (
+								<Checkbox
+									checked={settings.filter.methods.includes(m)}
+									key={m}
+									onChange={(e) => setMethodSelected(m, e.target.checked)}
+								>
+									{m}
+								</Checkbox>
+							))}
+						</Space>
+					</div>
+				</Space>
+			</Card>
 
-				<TextField.Root onChange={setIncludeText} value={includeText}>
-					<Label.Root>Include 域名 / 主机规则</Label.Root>
-					<Description.Root>
-						每行一条：普通行为正则（匹配主机名）；单独一行写 current-tab-host
-						表示使用当前 DevTools 所检查标签页的域名。
-					</Description.Root>
-					<TextArea.Root
-						className='mt-2 min-h-32 font-mono text-sm'
-						spellCheck={false}
-					/>
-				</TextField.Root>
-
-				<TextField.Root onChange={setExcludeText} value={excludeText}>
-					<Label.Root>排除扩展名</Label.Root>
-					<Description.Root>
-						逗号或换行分隔，可带或不带前导点（保存时会规范为小写 + 前导点）。
-					</Description.Root>
-					<TextArea.Root
-						className='mt-2 min-h-24 font-mono text-sm'
-						spellCheck={false}
-					/>
-				</TextField.Root>
-
-				<Fieldset.Root>
-					<Fieldset.Legend>HTTP 方法</Fieldset.Legend>
-					<Fieldset.Group className='mt-3 flex flex-wrap gap-4'>
-						{HTTP_METHODS.map((m) => (
-							<Checkbox.Root
-								isSelected={settings.filter.methods.includes(m)}
-								key={m}
-								onChange={(selected) => setMethodSelected(m, selected)}
-							>
-								<Checkbox.Control>
-									<Checkbox.Indicator />
-								</Checkbox.Control>
-								<Checkbox.Content>{m}</Checkbox.Content>
-							</Checkbox.Root>
-						))}
-					</Fieldset.Group>
-				</Fieldset.Root>
-			</Surface.Root>
-
-			<Surface.Root className='space-y-6 p-6' variant='default'>
-				<Text.Root className='font-medium text-lg'>采样</Text.Root>
-				<div className='grid gap-4 sm:grid-cols-2'>
-					<NumberField.Root
-						maxValue={2_000_000}
-						minValue={256}
-						onChange={(v) =>
-							setSettings({
-								...settings,
-								sampling: { ...settings.sampling, responseBodyLimit: v },
-							})
-						}
-						value={settings.sampling.responseBodyLimit}
-					>
-						<Label.Root>Response Body 字符上限</Label.Root>
-						<NumberField.Group className='mt-1'>
-							<NumberField.IncrementButton>+</NumberField.IncrementButton>
-							<NumberField.Input />
-							<NumberField.DecrementButton>−</NumberField.DecrementButton>
-						</NumberField.Group>
-					</NumberField.Root>
-
-					<NumberField.Root
-						maxValue={500}
-						minValue={0}
-						onChange={(v) =>
-							setSettings({
-								...settings,
-								sampling: { ...settings.sampling, arrayTruncationCount: v },
-							})
-						}
-						value={settings.sampling.arrayTruncationCount}
-					>
-						<Label.Root>JSON 数组最多保留元素数</Label.Root>
-						<NumberField.Group className='mt-1'>
-							<NumberField.IncrementButton>+</NumberField.IncrementButton>
-							<NumberField.Input />
-							<NumberField.DecrementButton>−</NumberField.DecrementButton>
-						</NumberField.Group>
-					</NumberField.Root>
-				</div>
-			</Surface.Root>
-
-			<Surface.Root className='space-y-6 p-6' variant='default'>
-				<Text.Root className='font-medium text-lg'>分析预设</Text.Root>
-				<div className='grid gap-4 sm:grid-cols-2'>
-					<Select.Root
-						onSelectionChange={(key) => {
-							const id = key == null ? undefined : String(key);
-							if (!id) {
-								return;
+			<Card title='采样'>
+				<Row gutter={16}>
+					<Col span={12}>
+						<div className='mb-1 font-medium'>Response Body 字符上限</div>
+						<InputNumber
+							className='w-full'
+							max={2_000_000}
+							min={256}
+							onChange={(v) =>
+								setSettings({
+									...settings,
+									sampling: {
+										...settings.sampling,
+										responseBodyLimit: Number(
+											v ?? settings.sampling.responseBodyLimit,
+										),
+									},
+								})
 							}
-							setSettings({
-								...settings,
-								analysis: {
-									...settings.analysis,
-									targetLanguage:
-										id as ExtensionSettings['analysis']['targetLanguage'],
-								},
-							});
-						}}
-						selectedKey={settings.analysis.targetLanguage}
-					>
-						<Label.Root>目标语言</Label.Root>
-						<Select.Trigger className='mt-1'>
-							<Select.Value />
-							<Select.Indicator />
-						</Select.Trigger>
-						<Select.Popover>
-							<ListBox.Root>
-								{LANGUAGE_OPTIONS.map((o) => (
-									<ListBox.Item id={o.id} key={o.id} textValue={o.label}>
-										{o.label}
-									</ListBox.Item>
-								))}
-							</ListBox.Root>
-						</Select.Popover>
-					</Select.Root>
-
-					<Select.Root
-						onSelectionChange={(key) => {
-							const id = key == null ? undefined : String(key);
-							if (!id) {
-								return;
+							value={settings.sampling.responseBodyLimit}
+						/>
+					</Col>
+					<Col span={12}>
+						<div className='mb-1 font-medium'>JSON 数组最多保留元素数</div>
+						<InputNumber
+							className='w-full'
+							max={500}
+							min={0}
+							onChange={(v) =>
+								setSettings({
+									...settings,
+									sampling: {
+										...settings.sampling,
+										arrayTruncationCount: Number(
+											v ?? settings.sampling.arrayTruncationCount,
+										),
+									},
+								})
 							}
-							setSettings({
-								...settings,
-								analysis: {
-									...settings.analysis,
-									schemaType: id as ExtensionSettings['analysis']['schemaType'],
-								},
-							});
-						}}
-						selectedKey={settings.analysis.schemaType}
-					>
-						<Label.Root>Schema 类型</Label.Root>
-						<Select.Trigger className='mt-1'>
-							<Select.Value />
-							<Select.Indicator />
-						</Select.Trigger>
-						<Select.Popover>
-							<ListBox.Root>
-								{SCHEMA_OPTIONS.map((o) => (
-									<ListBox.Item id={o.id} key={o.id} textValue={o.label}>
-										{o.label}
-									</ListBox.Item>
-								))}
-							</ListBox.Root>
-						</Select.Popover>
-					</Select.Root>
-				</div>
-			</Surface.Root>
+							value={settings.sampling.arrayTruncationCount}
+						/>
+					</Col>
+				</Row>
+			</Card>
+
+			<Card title='分析预设'>
+				<Row gutter={16}>
+					<Col span={12}>
+						<div className='mb-1 font-medium'>目标语言</div>
+						<Select
+							className='w-full'
+							onChange={(id) =>
+								setSettings({
+									...settings,
+									analysis: {
+										...settings.analysis,
+										targetLanguage:
+											id as ExtensionSettings['analysis']['targetLanguage'],
+									},
+								})
+							}
+							options={LANGUAGE_OPTIONS.map((o) => ({
+								label: o.label,
+								value: o.id,
+							}))}
+							value={settings.analysis.targetLanguage}
+						/>
+					</Col>
+					<Col span={12}>
+						<div className='mb-1 font-medium'>Schema 类型</div>
+						<Select
+							className='w-full'
+							onChange={(id) =>
+								setSettings({
+									...settings,
+									analysis: {
+										...settings.analysis,
+										schemaType:
+											id as ExtensionSettings['analysis']['schemaType'],
+									},
+								})
+							}
+							options={SCHEMA_OPTIONS.map((o) => ({
+								label: o.label,
+								value: o.id,
+							}))}
+							value={settings.analysis.schemaType}
+						/>
+					</Col>
+				</Row>
+			</Card>
 
 			{status.kind === 'ok' ? (
-				<Alert.Root status='success'>
-					<Alert.Indicator />
-					<Alert.Content>
-						<Alert.Title>成功</Alert.Title>
-						<Alert.Description>{status.text}</Alert.Description>
-					</Alert.Content>
-				</Alert.Root>
+				<Alert
+					description={status.text}
+					message='成功'
+					showIcon
+					type='success'
+				/>
 			) : null}
 			{status.kind === 'err' ? (
-				<Alert.Root status='danger'>
-					<Alert.Indicator />
-					<Alert.Content>
-						<Alert.Title>校验或保存失败</Alert.Title>
-						<Alert.Description>
-							<span className='whitespace-pre-wrap'>{status.text}</span>
-						</Alert.Description>
-					</Alert.Content>
-				</Alert.Root>
+				<Alert
+					description={
+						<span className='whitespace-pre-wrap'>{status.text}</span>
+					}
+					message='校验或保存失败'
+					showIcon
+					type='error'
+				/>
 			) : null}
 
 			<div className='flex flex-wrap gap-3'>
 				<Button
-					isDisabled={busy}
-					onPress={() => onSave().catch(() => undefined)}
-					variant='primary'
+					disabled={busy}
+					onClick={() => onSave().catch(() => undefined)}
+					type='primary'
 				>
 					保存
 				</Button>
 				<Button
-					isDisabled={busy}
-					onPress={() => onReset().catch(() => undefined)}
-					variant='secondary'
+					disabled={busy}
+					onClick={() => onReset().catch(() => undefined)}
 				>
 					恢复默认
 				</Button>

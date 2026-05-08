@@ -47,6 +47,21 @@ describe('truncateJsonArrays', () => {
 		expect(out.a.length).toBe(2);
 		expect(out.d).toEqual([9, 8]);
 	});
+
+	it('deduplicates repeated same-shape objects in arrays', () => {
+		const input = {
+			items: [
+				{ id: 1, name: 'a' },
+				{ id: 2, name: 'b' },
+				{ id: 3, name: 'c' },
+			],
+		};
+		const out = truncateJsonArrays(input, 3) as {
+			items: Array<{ id: number; name: string }>;
+		};
+		expect(out.items.length).toBe(1);
+		expect(Object.keys(out.items[0] ?? {}).sort()).toEqual(['id', 'name']);
+	});
 });
 
 describe('refineRequest', () => {

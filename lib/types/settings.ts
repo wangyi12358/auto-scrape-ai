@@ -57,6 +57,8 @@ export interface AnalysisPresets {
  */
 export interface AiConnectionSettings {
 	apiKey: string;
+	/** OpenAI-compatible base URL, e.g. `https://api.openai.com/v1` */
+	baseUrl: string;
 	/** Provider model id, e.g. `gpt-4.1-mini` */
 	model: string;
 }

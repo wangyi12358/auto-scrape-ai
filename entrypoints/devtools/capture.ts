@@ -94,10 +94,10 @@ export function getStats(): CaptureStats {
 }
 
 /** Optional hooks for task 07 bridge (DevTools → background → sidepanel). */
-export type RecordingChangeEvent = {
+export interface RecordingChangeEvent {
 	active: boolean;
 	reason?: string;
-};
+}
 
 let recordingNotifier: ((e: RecordingChangeEvent) => void) | undefined;
 let capturedNotifier: ((r: CapturedRequest) => void) | undefined;
@@ -215,6 +215,33 @@ function shouldTreatAsNonTextMime(mime: string | undefined): boolean {
 		m.startsWith('video/') ||
 		m.startsWith('audio/') ||
 		m.includes('font')
+	);
+}
+
+function normalizeMime(value: string | undefined): string {
+	if (!value) {
+		return '';
+	}
+	return value.split(';', 1)[0]?.trim().toLowerCase() ?? '';
+}
+
+function shouldIgnoreByContentType(entry: DevToolsHarEntry): boolean {
+	const mimeFromHar = normalizeMime(entry.response.content?.mimeType);
+	const mimeFromHeader = normalizeMime(
+		headerValue(entry.response.headers, 'Content-Type'),
+	);
+	const mime = mimeFromHar || mimeFromHeader;
+	if (!mime) {
+		return false;
+	}
+	return (
+		mime.startsWith('image/') ||
+		mime.startsWith('video/') ||
+		mime.startsWith('audio/') ||
+		mime === 'text/plain' ||
+		mime === 'application/octet-stream' ||
+		mime === 'application/vnd.apple.mpegurl' ||
+		mime === 'application/dash+xml'
 	);
 }
 
@@ -379,8 +406,6 @@ async function onHarFinished(
 	}
 	bump({ totalFinished: stats.totalFinished + 1 });
 
-	console.log('onHarFinished', entry);
-
 	const settings = cachedSettings;
 	const captureId = crypto.randomUUID();
 	const finishedMs = Date.now();
@@ -391,6 +416,12 @@ async function onHarFinished(
 		inspectedTabUrl,
 		settings,
 	});
+
+	// Ignore media/static payload rows by response content type.
+	if (shouldIgnoreByContentType(entry)) {
+		bump({ skippedByFilter: stats.skippedByFilter + 1 });
+		return;
+	}
 
 	if (!passesFilter(shell, settings)) {
 		bump({ skippedByFilter: stats.skippedByFilter + 1 });
@@ -425,7 +456,6 @@ async function refreshSettings(): Promise<void> {
 }
 
 export async function startRecording(): Promise<void> {
-	console.log('startRecording');
 	if (recording) {
 		return;
 	}
@@ -450,7 +480,6 @@ export async function startRecording(): Promise<void> {
 	recording = true;
 
 	requestListener = (req: DevToolsHarEntry) => {
-		console.log('requestListener', req);
 		onHarFinished(req).catch(() => {
 			/* dropped async errors from one HAR row */
 		});
