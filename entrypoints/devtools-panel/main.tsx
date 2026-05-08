@@ -2,7 +2,7 @@ import '@/assets/tailwind.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { HerouiProvider } from '@/components/heroui-provider';
-import App from './app1';
+import App from './app';
 
 const root = document.getElementById('root');
 if (!root) {
