@@ -11,7 +11,8 @@
     }
   },
   "files": {
-    "ignoreUnknown": false
+    "ignoreUnknown": false,
+    "includes": ["!**/.agents"]
   },
   "formatter": {
     "enabled": true,
