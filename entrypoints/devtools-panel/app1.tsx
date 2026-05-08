@@ -68,11 +68,12 @@ export default function App() {
 
 	return (
 		<Surface.Root className='min-h-screen p-4' variant='default'>
-			<h1 className='font-semibold text-foreground text-lg'>Auto Scrape AI</h1>
+			<h1 className='font-semibold text-foreground text-lg'>
+				Bingo Texas DevTools
+			</h1>
 			<Text.Root className='mt-2 text-muted text-sm leading-relaxed'>
-				任务 07：通过 background 桥接 DevTools
-				抓包与侧边栏。请先打开目标页的开发者工具并加载本扩展的 DevTools
-				页，再在此开始录制。
+				通过 background 桥接 DevTools 抓包与面板
+				UI。请先打开目标页的开发者工具， 再在此开始录制。
 			</Text.Root>
 
 			<div className='mt-4 flex flex-wrap gap-2'>
@@ -125,12 +126,6 @@ export default function App() {
 					<div className='text-amber-600 dark:text-amber-400'>{bridgeHint}</div>
 				) : null}
 			</div>
-
-			<Text.Root className='mt-6 text-muted text-xs leading-relaxed'>
-				架构说明见{' '}
-				<code className='bg-field font-mono'>lib/architecture.ts</code>
-				；完整列表 UI 在任务 08–09。
-			</Text.Root>
 		</Surface.Root>
 	);
 }

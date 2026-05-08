@@ -7,6 +7,12 @@ export default defineConfig({
 	vite: () => ({
 		plugins: [tailwindcss()],
 	}),
+	runner: {
+		chromiumArgs: [
+			'--disable-blink-features=AutomationControlled',
+			'--excludeSwitches=enable-automation',
+		],
+	},
 	manifest: {
 		name: 'Auto Scrape AI',
 		description:

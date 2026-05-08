@@ -379,6 +379,8 @@ async function onHarFinished(
 	}
 	bump({ totalFinished: stats.totalFinished + 1 });
 
+	console.log('onHarFinished', entry);
+
 	const settings = cachedSettings;
 	const captureId = crypto.randomUUID();
 	const finishedMs = Date.now();
@@ -423,6 +425,7 @@ async function refreshSettings(): Promise<void> {
 }
 
 export async function startRecording(): Promise<void> {
+	console.log('startRecording');
 	if (recording) {
 		return;
 	}
@@ -447,6 +450,7 @@ export async function startRecording(): Promise<void> {
 	recording = true;
 
 	requestListener = (req: DevToolsHarEntry) => {
+		console.log('requestListener', req);
 		onHarFinished(req).catch(() => {
 			/* dropped async errors from one HAR row */
 		});

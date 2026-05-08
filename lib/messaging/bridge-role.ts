@@ -14,11 +14,11 @@ export function inferBridgeEndpoint(
 	port: Browser.runtime.Port,
 ): BridgeEndpointKind | null {
 	const url = port.sender?.url ?? '';
+	if (url.includes('sidepanel') || url.includes('devtools-panel')) {
+		return 'sidepanel';
+	}
 	if (url.includes('devtools')) {
 		return 'devtools';
-	}
-	if (url.includes('sidepanel')) {
-		return 'sidepanel';
 	}
 	return null;
 }

@@ -17,9 +17,11 @@ import {
  * usually unloading; a new connect happens on next open.
  */
 export function initDevtoolsBridge(syncUi: () => void): void {
+	console.log('initDevtoolsBridge');
 	const port = browser.runtime.connect({ name: BRIDGE_PORT_NAME });
 
 	port.onMessage.addListener((raw: unknown) => {
+		console.log('onMessage', raw);
 		if (!isBridgeMessage(raw)) {
 			return;
 		}
@@ -61,6 +63,7 @@ async function dispatchBridgeCommand(
 ): Promise<void> {
 	switch (msg.type) {
 		case BridgeMessageType.START_RECORDING:
+			console.log('dispatchBridgeCommand START_RECORDING');
 			await startRecording();
 			break;
 		case BridgeMessageType.STOP_RECORDING:
