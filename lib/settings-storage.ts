@@ -143,6 +143,24 @@ export function mergeExtensionSettingsFromStored(
 	}
 
 	if (isRecord(raw.analysis)) {
+		if (
+			typeof raw.analysis.maxConcurrentAnalysis === 'number' &&
+			Number.isFinite(raw.analysis.maxConcurrentAnalysis)
+		) {
+			next.analysis.maxConcurrentAnalysis = Math.min(
+				32,
+				Math.max(1, Math.floor(raw.analysis.maxConcurrentAnalysis)),
+			);
+		}
+		if (
+			typeof raw.analysis.analysisTimeoutMs === 'number' &&
+			Number.isFinite(raw.analysis.analysisTimeoutMs)
+		) {
+			next.analysis.analysisTimeoutMs = Math.min(
+				600_000,
+				Math.max(10_000, Math.round(raw.analysis.analysisTimeoutMs)),
+			);
+		}
 		const tl = raw.analysis.targetLanguage;
 		if (
 			typeof tl === 'string' &&
@@ -240,6 +258,22 @@ export function validateExtensionSettings(s: ExtensionSettings): string[] {
 	}
 	if (!(SCHEMA_TYPES as readonly string[]).includes(s.analysis.schemaType)) {
 		errors.push('Invalid schema type');
+	}
+
+	if (!Number.isFinite(s.analysis.maxConcurrentAnalysis)) {
+		errors.push('Max concurrent analysis must be a number');
+	} else if (s.analysis.maxConcurrentAnalysis < 1) {
+		errors.push('Max concurrent analysis must be at least 1');
+	} else if (s.analysis.maxConcurrentAnalysis > 32) {
+		errors.push('Max concurrent analysis is too large (max 32)');
+	}
+
+	if (!Number.isFinite(s.analysis.analysisTimeoutMs)) {
+		errors.push('Analysis timeout must be a number');
+	} else if (s.analysis.analysisTimeoutMs < 10_000) {
+		errors.push('Analysis timeout must be at least 10,000 ms');
+	} else if (s.analysis.analysisTimeoutMs > 600_000) {
+		errors.push('Analysis timeout is too large (max 600,000 ms)');
 	}
 
 	return errors;

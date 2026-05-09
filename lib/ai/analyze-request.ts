@@ -113,10 +113,10 @@ export async function analyzeCapturedRequest(
 	const prompt = [
 		'你是一个 API 逆向分析助手。',
 		'请根据 URL、HTTP 方法、请求摘要和响应摘要，判断该接口的用途。',
-		'必须使用简体中文输出 shortDescription 和 detailedDescription。',
+		'必须使用简体中文。',
 		'只返回严格 JSON，不要输出任何额外文本；JSON 必须包含以下字段：',
-		'- shortDescription: 用于列表展示的一句话简述',
-		'- detailedDescription: 更详细的接口行为说明与业务含义推断',
+		'- shortDescription: 用于列表展示的一句话纯文本简述（不要使用 Markdown）',
+		'- detailedDescription: 更详细的接口行为说明与业务含义推断，**必须使用 Markdown** 编写（可使用二级/三级标题、有序/无序列表、粗体、行内代码与围栏代码块等；内容中的换行在 JSON 字符串里用 \\n 表示）',
 		`输入 JSON：${JSON.stringify(promptPayload)}`,
 	].join('\n');
 

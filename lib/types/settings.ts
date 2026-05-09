@@ -47,6 +47,10 @@ export type TargetLanguage =
 export type SchemaType = 'typescript-interface' | 'json-schema' | 'pydantic';
 
 export interface AnalysisPresets {
+	/** Per-request AI call timeout in milliseconds (e.g. 60_000). */
+	analysisTimeoutMs: number;
+	/** Parallel OpenAI calls in DevTools panel queue (1–32). */
+	maxConcurrentAnalysis: number;
 	schemaType: SchemaType;
 	targetLanguage: TargetLanguage;
 }

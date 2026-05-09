@@ -6,7 +6,7 @@ A [WXT](https://wxt.dev/) + React browser extension that captures HTTP traffic i
 
 ## Features
 
-- **DevTools panel** (`自动抓包 AI`): start/stop recording, table of captured requests, bridge status hints.
+- **DevTools panel** (`Auto Scrape AI`): start/stop recording, table of captured requests, bridge status hints.
 - **Network capture** via `chrome.devtools.network` in the DevTools context (reliable access to response bodies).
 - **Filtering**: domain rules (regex or `current-tab-host`), HTTP methods, file extensions (e.g. `.js`, `.css`, images), and content-type skips (images, video, audio, `text/plain`, common binary/streaming types).
 - **Refinement**: header blocklists, JSON array truncation with same-shape deduplication, configurable body limits.
@@ -16,18 +16,18 @@ A [WXT](https://wxt.dev/) + React browser extension that captures HTTP traffic i
 ## Quick start
 
 ```bash
-pnpm install   # or: bun install
+bun install   # or: bun install
 cp .env.example .env.local   # optional: defaults for local dev (see below)
-pnpm dev       # or: bun dev
+bun dev       # or: bun dev
 ```
 
-Load the unpacked extension from `.output/chrome-mv3-dev` (path may vary by WXT version). Open a tab, press **F12**, then choose the **自动抓包 AI** panel. Configure **extension options** (API key, base URL, filters, sampling).
+Load the unpacked extension from `.output/chrome-mv3-dev` (path may vary by WXT version). Open a tab, press **F12**, then choose the **Auto Scrape AI** panel. Configure **extension options** (API key, base URL, filters, sampling).
 
 ## Configuration
 
 ### Options page
 
-From `chrome://extensions` → **自动抓包 AI** → **Extension options** (or `browser.runtime.openOptionsPage()` from the popup).
+From `chrome://extensions` → **Auto Scrape AI** → **Extension options** (or `browser.runtime.openOptionsPage()` from the popup).
 
 ### Default overrides via `.env.local`
 
@@ -71,12 +71,12 @@ Full **response bodies** are read in the **DevTools** script (`chrome.devtools.n
 
 | Command | Description |
 |---------|-------------|
-| `pnpm dev` / `bun dev` | WXT dev server |
-| `pnpm dev:firefox` | WXT dev (Firefox) |
-| `pnpm build` | Production build |
-| `pnpm compile` | `tsc --noEmit` |
-| `pnpm test` / `bun test lib/` | Unit tests (e.g. refiner) |
-| `pnpm check` / `pnpm fix` | Ultracite (Biome) |
+| `bun dev` / `bun dev` | WXT dev server |
+| `bun dev:firefox` | WXT dev (Firefox) |
+| `bun build` | Production build |
+| `bun compile` | `tsc --noEmit` |
+| `bun test` / `bun test lib/` | Unit tests (e.g. refiner) |
+| `bun check` / `bun fix` | Ultracite (Biome) |
 
 ## License / privacy
 

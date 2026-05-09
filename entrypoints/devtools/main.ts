@@ -14,13 +14,13 @@ initDevtoolsBridge(() => {
 });
 
 browser.devtools.panels.create(
-	'自动抓包 AI',
+	'Auto Scrape AI',
 	'icon/128.png',
 	'devtools-panel.html',
 );
 
 // browser.devtools.panels.elements.createSidebarPane(
-// 	'自动抓包 AI',
+// 	'Auto Scrape AI',
 // 	(pane) => {
 // 		pane.setPage('devtools-pane.html');
 // 	},

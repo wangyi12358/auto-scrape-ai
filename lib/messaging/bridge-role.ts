@@ -4,7 +4,7 @@
  */
 import type { Browser } from 'wxt/browser';
 
-export type BridgeEndpointKind = 'devtools' | 'sidepanel';
+export type BridgeEndpointKind = 'devtools' | 'panel' | 'popup';
 
 /**
  * Uses `port.sender.url` (present for extension pages). Background/popup/options
@@ -14,8 +14,11 @@ export function inferBridgeEndpoint(
 	port: Browser.runtime.Port,
 ): BridgeEndpointKind | null {
 	const url = port.sender?.url ?? '';
-	if (url.includes('sidepanel') || url.includes('devtools-panel')) {
-		return 'sidepanel';
+	if (url.includes('devtools-panel') || url.includes('sidepanel')) {
+		return 'panel';
+	}
+	if (url.includes('popup')) {
+		return 'popup';
 	}
 	if (url.includes('devtools')) {
 		return 'devtools';

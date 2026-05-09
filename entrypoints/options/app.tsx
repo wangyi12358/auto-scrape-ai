@@ -189,7 +189,7 @@ export default function App() {
 	return (
 		<div className='mx-auto max-w-3xl space-y-6 px-4 py-8 text-foreground'>
 			<header className='space-y-1'>
-				<Typography.Title level={3}>自动抓包 AI 设置</Typography.Title>
+				<Typography.Title level={3}>Auto Scrape AI 设置</Typography.Title>
 				<Typography.Text type='secondary'>
 					配置保存在本机的 storage.local，不会通过 Chrome 同步（避免 API Key
 					离开本机）。
@@ -345,6 +345,55 @@ export default function App() {
 
 			<Card title='分析预设'>
 				<Row gutter={16}>
+					<Col span={12}>
+						<div className='mb-1 font-medium'>同时分析请求数</div>
+						<Typography.Text className='mb-2 block' type='secondary'>
+							DevTools 面板内排队并发调用 AI 的上限（1–32）。
+						</Typography.Text>
+						<InputNumber
+							className='w-full'
+							max={32}
+							min={1}
+							onChange={(v) =>
+								setSettings({
+									...settings,
+									analysis: {
+										...settings.analysis,
+										maxConcurrentAnalysis: Number(
+											v ?? settings.analysis.maxConcurrentAnalysis,
+										),
+									},
+								})
+							}
+							value={settings.analysis.maxConcurrentAnalysis}
+						/>
+					</Col>
+					<Col span={12}>
+						<div className='mb-1 font-medium'>单次分析超时（毫秒）</div>
+						<Typography.Text className='mb-2 block' type='secondary'>
+							单条请求 AI 分析最长等待时间（10,000–600,000）。
+						</Typography.Text>
+						<InputNumber
+							className='w-full'
+							max={600_000}
+							min={10_000}
+							onChange={(v) =>
+								setSettings({
+									...settings,
+									analysis: {
+										...settings.analysis,
+										analysisTimeoutMs: Number(
+											v ?? settings.analysis.analysisTimeoutMs,
+										),
+									},
+								})
+							}
+							step={1000}
+							value={settings.analysis.analysisTimeoutMs}
+						/>
+					</Col>
+				</Row>
+				<Row className='mt-4' gutter={16}>
 					<Col span={12}>
 						<div className='mb-1 font-medium'>目标语言</div>
 						<Select

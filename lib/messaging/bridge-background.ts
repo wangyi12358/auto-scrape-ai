@@ -21,6 +21,7 @@ import {
 	type BridgeMessage,
 	BridgeMessageType,
 	isBridgeMessage,
+	type RecordingToggledPayload,
 } from '@/lib/messages';
 import { inferBridgeEndpoint } from '@/lib/messaging/bridge-role';
 
@@ -38,10 +39,19 @@ function broadcast(
 }
 
 const devtoolsPorts = new Set<Browser.runtime.Port>();
-const sidepanelPorts = new Set<Browser.runtime.Port>();
+/** DevTools panel / legacy sidepanel — receives captures + recording state */
+const panelPorts = new Set<Browser.runtime.Port>();
+/** Toolbar popup — recording state only (avoids large REQUEST_CAPTURED payloads) */
+const popupPorts = new Set<Browser.runtime.Port>();
 
-function broadcastToSidepanels(message: BridgeMessage): void {
-	broadcast(sidepanelPorts, message);
+let lastRecordingUiState: RecordingToggledPayload | null = null;
+
+function broadcastToPanels(message: BridgeMessage): void {
+	broadcast(panelPorts, message);
+}
+
+function broadcastToPopups(message: BridgeMessage): void {
+	broadcast(popupPorts, message);
 }
 
 function broadcastToDevtools(message: BridgeMessage): void {
@@ -49,20 +59,42 @@ function broadcastToDevtools(message: BridgeMessage): void {
 }
 
 function broadcastToAllUi(message: BridgeMessage): void {
-	broadcastToSidepanels(message);
+	broadcastToPanels(message);
+	broadcastToPopups(message);
 	broadcastToDevtools(message);
 }
 
-function handleSidepanelCommand(message: BridgeMessage): void {
+function emitRecordingToUiClients(payload: RecordingToggledPayload): void {
+	lastRecordingUiState = payload;
+	const message: BridgeMessage = {
+		type: BridgeMessageType.RECORDING_TOGGLED,
+		payload,
+	};
+	broadcastToPanels(message);
+	broadcastToPopups(message);
+}
+
+function replayRecordingStateToPort(port: Browser.runtime.Port): void {
+	if (lastRecordingUiState === null) {
+		return;
+	}
+	try {
+		port.postMessage({
+			type: BridgeMessageType.RECORDING_TOGGLED,
+			payload: lastRecordingUiState,
+		} satisfies BridgeMessage);
+	} catch {
+		/* gone */
+	}
+}
+
+function handleUiCommand(message: BridgeMessage): void {
 	switch (message.type) {
 		case BridgeMessageType.START_RECORDING: {
 			if (devtoolsPorts.size === 0) {
-				broadcastToSidepanels({
-					type: BridgeMessageType.RECORDING_TOGGLED,
-					payload: {
-						active: false,
-						reason: 'devtools-not-connected',
-					},
+				emitRecordingToUiClients({
+					active: false,
+					reason: 'devtools-not-connected',
 				});
 				return;
 			}
@@ -71,12 +103,9 @@ function handleSidepanelCommand(message: BridgeMessage): void {
 		}
 		case BridgeMessageType.STOP_RECORDING: {
 			if (devtoolsPorts.size === 0) {
-				broadcastToSidepanels({
-					type: BridgeMessageType.RECORDING_TOGGLED,
-					payload: {
-						active: false,
-						reason: 'devtools-not-connected',
-					},
+				emitRecordingToUiClients({
+					active: false,
+					reason: 'devtools-not-connected',
 				});
 				return;
 			}
@@ -94,9 +123,11 @@ function handleSidepanelCommand(message: BridgeMessage): void {
 
 function handleDevtoolsMessage(message: BridgeMessage): void {
 	switch (message.type) {
-		case BridgeMessageType.REQUEST_CAPTURED:
 		case BridgeMessageType.RECORDING_TOGGLED:
-			broadcastToSidepanels(message);
+			emitRecordingToUiClients(message.payload);
+			break;
+		case BridgeMessageType.REQUEST_CAPTURED:
+			broadcastToPanels(message);
 			break;
 		default:
 			break;
@@ -113,18 +144,24 @@ export function registerBridgeHub(): void {
 			port.disconnect();
 			return;
 		}
-		const bucket = endpoint === 'devtools' ? devtoolsPorts : sidepanelPorts;
+		const bucket =
+			endpoint === 'devtools'
+				? devtoolsPorts
+				: endpoint === 'popup'
+					? popupPorts
+					: panelPorts;
 		bucket.add(port);
+
+		if (endpoint === 'panel' || endpoint === 'popup') {
+			replayRecordingStateToPort(port);
+		}
 
 		port.onDisconnect.addListener(() => {
 			bucket.delete(port);
 			if (endpoint === 'devtools' && devtoolsPorts.size === 0) {
-				broadcastToSidepanels({
-					type: BridgeMessageType.RECORDING_TOGGLED,
-					payload: {
-						active: false,
-						reason: 'devtools-disconnected',
-					},
+				emitRecordingToUiClients({
+					active: false,
+					reason: 'devtools-disconnected',
 				});
 			}
 		});
@@ -134,10 +171,10 @@ export function registerBridgeHub(): void {
 				return;
 			}
 			const msg = raw as BridgeMessage;
-			if (endpoint === 'sidepanel') {
-				handleSidepanelCommand(msg);
-			} else {
+			if (endpoint === 'devtools') {
 				handleDevtoolsMessage(msg);
+			} else {
+				handleUiCommand(msg);
 			}
 		});
 	});

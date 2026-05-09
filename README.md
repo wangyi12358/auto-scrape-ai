@@ -1,4 +1,4 @@
-# 自动抓包 AI（Auto Scrape AI）
+# Auto Scrape AI（Auto Scrape AI）
 
 基于 [WXT](https://wxt.dev/) 与 React 的浏览器扩展：在 **Chrome 开发者工具** 中抓取 HTTP 流量，对请求/响应做摘要与裁剪，并通过 **兼容 OpenAI 的 API** 生成接口的简短说明与详细说明（提示词默认要求使用**简体中文**输出描述）。
 
@@ -6,7 +6,7 @@
 
 ## 功能概览
 
-- **DevTools 面板**（名称：`自动抓包 AI`）：开始/停止录制、以表格展示已捕获请求、显示桥接/录制状态提示。
+- **DevTools 面板**（名称：`Auto Scrape AI`）：开始/停止录制、以表格展示已捕获请求、显示桥接/录制状态提示。
 - **网络抓取**：在 DevTools 扩展上下文中使用 `chrome.devtools.network`（可稳定读取 **响应体**）。
 - **过滤规则**：域名（正则或 `current-tab-host`）、HTTP 方法、扩展名（如 `.js`、`.css`、图片等）、以及按 Content-Type 忽略图片/音视频、`text/plain`、常见二进制与流媒体类型。
 - **数据精炼**：请求头黑名单、JSON 数组截断与同结构去重、可配置的响应体长度与数组条数上限。
@@ -16,18 +16,18 @@
 ## 快速开始
 
 ```bash
-pnpm install   # 或: bun install
+bun install   # 或: bun install
 cp .env.example .env.local   # 可选：本地默认配置（见下文）
-pnpm dev       # 或: bun dev
+bun dev       # 或: bun dev
 ```
 
-在 `chrome://extensions` 中加载 **未打包扩展**，目录一般为 `.output/chrome-mv3-dev`（具体以当前 WXT 版本为准）。在目标页面按 **F12**，切换到 **自动抓包 AI** 面板。在 **扩展选项** 中填写 API 与过滤、采样等设置。
+在 `chrome://extensions` 中加载 **未打包扩展**，目录一般为 `.output/chrome-mv3-dev`（具体以当前 WXT 版本为准）。在目标页面按 **F12**，切换到 **Auto Scrape AI** 面板。在 **扩展选项** 中填写 API 与过滤、采样等设置。
 
 ## 配置说明
 
 ### 选项页
 
-在 `chrome://extensions` → **自动抓包 AI** → **扩展程序选项**（或通过弹窗调用 `browser.runtime.openOptionsPage()`）。
+在 `chrome://extensions` → **Auto Scrape AI** → **扩展程序选项**（或通过弹窗调用 `browser.runtime.openOptionsPage()`）。
 
 ### 使用 `.env.local` 覆盖默认值
 
@@ -71,12 +71,12 @@ pnpm dev       # 或: bun dev
 
 | 命令 | 说明 |
 |------|------|
-| `pnpm dev` / `bun dev` | WXT 开发模式 |
-| `pnpm dev:firefox` | Firefox 开发模式 |
-| `pnpm build` | 生产构建 |
-| `pnpm compile` | `tsc --noEmit` |
-| `pnpm test` / `bun test lib/` | 单元测试（如精炼逻辑） |
-| `pnpm check` / `pnpm fix` | Ultracite（Biome）检查或自动修复 |
+| `bu'n dev` / `bun dev` | WXT 开发模式 |
+| `bun dev:firefox` | Firefox 开发模式 |
+| `bun build` | 生产构建 |
+| `bun compile` | `tsc --noEmit` |
+| `bun test` / `bun test lib/` | 单元测试（如精炼逻辑） |
+| `bun check` / `bun fix` | Ultracite（Biome）检查或自动修复 |
 
 ## 许可与隐私
 

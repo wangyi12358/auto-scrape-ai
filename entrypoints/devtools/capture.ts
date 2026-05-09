@@ -6,10 +6,7 @@
  * bounded by {@link GET_CONTENT_TIMEOUT_MS} and truncated after read to cap in-memory text size.
  */
 import { passesFilter } from '@/lib/filter';
-import {
-	EXTENSION_SETTINGS_STORAGE_KEY,
-	loadExtensionSettings,
-} from '@/lib/settings-storage';
+import { loadExtensionSettings } from '@/lib/settings-storage';
 import { HTTP_METHODS, type HttpMethod } from '@/lib/types/http';
 import type {
 	CapturedRequest,
@@ -117,14 +114,10 @@ export function resetSessionStats(): void {
 }
 
 let recording = false;
-let cachedSettings: ExtensionSettings | null = null;
 let inspectedTabUrl: string | undefined;
 
 let requestListener: ((req: DevToolsHarEntry) => void) | undefined;
 let navigatedListener: ((url: string) => void) | undefined;
-let storageListener:
-	| Parameters<typeof browser.storage.onChanged.addListener>[0]
-	| undefined;
 
 /** Narrow `chrome.*` shape for `devtools_page` without `@types/chrome`. */
 interface ChromeRuntimeShim {
@@ -401,12 +394,18 @@ async function refreshInspectedUrl(): Promise<void> {
 async function onHarFinished(
 	entry: DevToolsHarEntry,
 ): Promise<CapturedRequest | undefined> {
-	if (!(recording && cachedSettings)) {
+	if (!recording) {
 		return;
 	}
 	bump({ totalFinished: stats.totalFinished + 1 });
 
-	const settings = cachedSettings;
+	let settings: ExtensionSettings;
+	try {
+		settings = await loadExtensionSettings();
+	} catch {
+		return;
+	}
+
 	const captureId = crypto.randomUUID();
 	const finishedMs = Date.now();
 
@@ -451,10 +450,6 @@ export function isRecording(): boolean {
 	return recording;
 }
 
-async function refreshSettings(): Promise<void> {
-	cachedSettings = await loadExtensionSettings();
-}
-
 export async function startRecording(): Promise<void> {
 	if (recording) {
 		return;
@@ -462,7 +457,6 @@ export async function startRecording(): Promise<void> {
 	stats = { ...initialStats };
 	emitStats();
 
-	await refreshSettings();
 	await refreshInspectedUrl();
 
 	const net = getDevtoolsNetwork();
@@ -495,16 +489,6 @@ export async function startRecording(): Promise<void> {
 		net.onNavigated.addListener(navigatedListener);
 	}
 
-	storageListener = (changes, area) => {
-		if (area !== 'local' || !(EXTENSION_SETTINGS_STORAGE_KEY in changes)) {
-			return;
-		}
-		refreshSettings().catch(() => {
-			/* settings reload is best-effort */
-		});
-	};
-	browser.storage.onChanged.addListener(storageListener);
-
 	recordingNotifier?.({ active: true });
 }
 
@@ -521,13 +505,8 @@ export function stopRecording(): void {
 	if (net?.onNavigated && navigatedListener) {
 		net.onNavigated.removeListener(navigatedListener);
 	}
-	if (storageListener) {
-		browser.storage.onChanged.removeListener(storageListener);
-	}
-
 	requestListener = undefined;
 	navigatedListener = undefined;
-	storageListener = undefined;
 
 	recordingNotifier?.({ active: false });
 }

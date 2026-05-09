@@ -26,6 +26,41 @@ function envStringList(key: string, fallback: string[]): string[] {
 	return list.length ? list : fallback;
 }
 
+function envInt(
+	key: string,
+	fallback: number,
+	min: number,
+	max: number,
+): number {
+	const raw = readEnv()[key]?.trim();
+	if (!raw) {
+		return fallback;
+	}
+	const n = Number.parseInt(raw, 10);
+	if (!Number.isFinite(n)) {
+		return fallback;
+	}
+	return Math.min(max, Math.max(min, n));
+}
+
+function envTimeoutMs(
+	key: string,
+	fallback: number,
+	min: number,
+	max: number,
+): number {
+	const raw = readEnv()[key]?.trim();
+	if (!raw) {
+		return fallback;
+	}
+	const n = Number(raw);
+	if (!Number.isFinite(n)) {
+		return fallback;
+	}
+	const rounded = Math.round(n);
+	return Math.min(max, Math.max(min, rounded));
+}
+
 export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
 	settingsVersion: 1,
 	filter: {
@@ -62,6 +97,18 @@ export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
 		arrayTruncationCount: 2,
 	},
 	analysis: {
+		maxConcurrentAnalysis: envInt(
+			'WXT_DEFAULT_MAX_CONCURRENT_ANALYSIS',
+			4,
+			1,
+			32,
+		),
+		analysisTimeoutMs: envTimeoutMs(
+			'WXT_DEFAULT_ANALYSIS_TIMEOUT_MS',
+			60_000,
+			10_000,
+			600_000,
+		),
 		targetLanguage: envString(
 			'WXT_DEFAULT_TARGET_LANGUAGE',
 			'python',

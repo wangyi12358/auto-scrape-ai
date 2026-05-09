@@ -14,7 +14,7 @@ export default defineConfig({
 		],
 	},
 	manifest: {
-		name: '自动抓包 AI',
+		name: 'Auto Scrape AI',
 		description:
 			'在开发者工具中抓取 HTTP 流量，精炼摘要并用 AI 生成接口说明（默认中文描述）。',
 		/**
