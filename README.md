@@ -4,6 +4,8 @@
 
 **语言：** [English](README.en.md) · 简体中文（本页）
 
+![Auto Scrape AI 示例截图](./docs/images/example1.png)
+
 ## 功能概览
 
 - **DevTools 面板**（名称：`Auto Scrape AI`）：开始/停止录制、以表格展示已捕获请求、显示桥接/录制状态提示。
