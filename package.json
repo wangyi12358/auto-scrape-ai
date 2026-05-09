@@ -36,7 +36,7 @@
     "prepare": "lefthook install"
   },
   "type": "module",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "在开发者工具中抓取 HTTP 并用 AI 分析接口（默认中文）",
   "private": true
 }
