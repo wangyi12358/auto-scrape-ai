@@ -53,7 +53,7 @@ function coerceAnalysis(raw: string): EndpointAnalysis {
 		const shortDescription =
 			typeof parsed.shortDescription === 'string'
 				? parsed.shortDescription
-				: 'Unable to summarize this endpoint.';
+				: '无法概括该接口。';
 		const detailedDescription =
 			typeof parsed.detailedDescription === 'string'
 				? parsed.detailedDescription

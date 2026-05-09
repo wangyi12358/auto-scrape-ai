@@ -33,7 +33,9 @@ function bridgeHintText(reason: string | undefined): string {
 }
 
 function formatTime(ms: number): string {
-	return new Date(ms).toLocaleTimeString();
+	return new Date(ms).toLocaleTimeString('zh-CN', {
+		hour12: false,
+	});
 }
 
 function normalizePathUrl(raw: string): string {
@@ -50,7 +52,7 @@ const ANALYSIS_TIMEOUT_MS = 60_000;
 const FAILED_ANALYSIS: EndpointAnalysis = {
 	shortDescription: '分析失败，请检查 API Key / Base URL / 模型配置。',
 	detailedDescription:
-		'AI 请求失败。请在 Options 页面确认 Base URL、API Key、Model 是否正确。',
+		'AI 请求失败。请在扩展选项页确认 Base URL、API Key、模型 ID 是否正确。',
 };
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -252,7 +254,7 @@ export default function App() {
 
 	return (
 		<div className='min-h-screen p-4'>
-			<Typography.Title level={4}>Auto Scrape AI</Typography.Title>
+			<Typography.Title level={4}>自动抓包 AI</Typography.Title>
 			<Typography.Text
 				className='block text-sm leading-relaxed'
 				type='secondary'
@@ -304,7 +306,7 @@ export default function App() {
 			<div className='mt-4 space-y-1 font-mono text-xs'>
 				<div>
 					录制状态：
-					<span>{recording ? 'on' : 'off'}</span>
+					<span>{recording ? '录制中' : '未录制'}</span>
 				</div>
 				<div>
 					已通过筛选的请求数：
@@ -313,8 +315,8 @@ export default function App() {
 				{bridgeHint ? <div className='text-amber-600'>{bridgeHint}</div> : null}
 				{settings?.ai.apiKey ? null : (
 					<div className='text-amber-600'>
-						未配置 AI Key，当前仅显示请求列表。请到 Options 配置 API Key + Base
-						URL。
+						未配置 API Key，当前仅显示请求列表。请到扩展选项页配置 API Key 与
+						Base URL。
 					</div>
 				)}
 			</div>

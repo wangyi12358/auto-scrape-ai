@@ -189,7 +189,7 @@ export default function App() {
 	return (
 		<div className='mx-auto max-w-3xl space-y-6 px-4 py-8 text-foreground'>
 			<header className='space-y-1'>
-				<Typography.Title level={3}>Auto Scrape AI 设置</Typography.Title>
+				<Typography.Title level={3}>自动抓包 AI 设置</Typography.Title>
 				<Typography.Text type='secondary'>
 					配置保存在本机的 storage.local，不会通过 Chrome 同步（避免 API Key
 					离开本机）。

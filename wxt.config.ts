@@ -14,9 +14,9 @@ export default defineConfig({
 		],
 	},
 	manifest: {
-		name: 'Auto Scrape AI',
+		name: '自动抓包 AI',
 		description:
-			'Capture HTTP traffic from DevTools, refine it, and turn it into structured docs with AI.',
+			'在开发者工具中抓取 HTTP 流量，精炼摘要并用 AI 生成接口说明（默认中文描述）。',
 		/**
 		 * Permissions & manifest fields used across tasks 05–13:
 		 * - `storage` — options + session/analysis persistence (tasks 04, 13).
