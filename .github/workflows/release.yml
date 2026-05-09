@@ -1,0 +1,36 @@
+name: Release Extension
+
+on:
+  push:
+    tags:
+      - "v*" # 当你推送 v1.0.0 这种 tag 时触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 安装 Bun 环境
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      # 安装依赖 (Bun 比 npm 快得多)
+      - name: Install dependencies
+        run: bun install
+
+      # 使用 WXT 打包 ZIP
+      # 注意：wxt zip 默认会读取 package.json 的版本号
+      - name: Build and Zip
+        run: bunx wxt zip
+
+      # 创建 GitHub Release 并上传 .output 下的 zip 文件
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: .output/*.zip
+          # 自动根据 commit 生成 release notes
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
