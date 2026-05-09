@@ -15,6 +15,19 @@ A [WXT](https://wxt.dev/) + React browser extension that captures HTTP traffic i
 
 ## Quick start
 
+### Option 1: Download pre-built package from GitHub Releases
+
+1. Visit the project's [GitHub Releases](https://github.com/wangyi12358/auto-scrape-ai/releases) page
+2. Download the latest `.zip` file (e.g., `auto-scrape-ai-1.0.0.zip`)
+3. Extract the downloaded `.zip` file to a local directory
+4. Open Chrome browser and navigate to `chrome://extensions/`
+5. Enable **Developer mode** in the top right corner
+6. Click **Load unpacked** and select the extracted directory
+7. Open a tab, press **F12**, then choose the **Auto Scrape AI** panel
+8. Configure **extension options** (API key, base URL, filters, sampling)
+
+### Option 2: Build from source for development
+
 ```bash
 bun install   # or: bun install
 cp .env.example .env.local   # optional: defaults for local dev (see below)
@@ -74,6 +87,8 @@ Full **response bodies** are read in the **DevTools** script (`chrome.devtools.n
 | `bun dev` / `bun dev` | WXT dev server |
 | `bun dev:firefox` | WXT dev (Firefox) |
 | `bun build` | Production build |
+| `bun zip` | Build Chrome extension release package (.zip file) |
+| `bun zip:firefox` | Build Firefox extension release package (.zip file) |
 | `bun compile` | `tsc --noEmit` |
 | `bun test` / `bun test lib/` | Unit tests (e.g. refiner) |
 | `bun check` / `bun fix` | Ultracite (Biome) |

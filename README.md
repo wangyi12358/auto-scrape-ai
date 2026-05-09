@@ -17,6 +17,19 @@
 
 ## 快速开始
 
+### 方式一：从 GitHub Releases 下载预构建包
+
+1. 访问项目的 [GitHub Releases](https://github.com/wangyi12358/auto-scrape-ai/releases) 页面
+2. 下载最新版本的 `.zip` 文件（例如 `auto-scrape-ai-1.0.0.zip`）
+3. 解压下载的 `.zip` 文件到本地目录
+4. 打开 Chrome 浏览器，进入 `chrome://extensions/`
+5. 开启右上角的 **开发者模式**
+6. 点击 **加载已解压的扩展程序**，选择解压后的目录
+7. 在目标页面按 **F12**，切换到 **Auto Scrape AI** 面板
+8. 在 **扩展选项** 中填写 API 与过滤、采样等设置
+
+### 方式二：从源码构建开发
+
 ```bash
 bun install   # 或: bun install
 cp .env.example .env.local   # 可选：本地默认配置（见下文）
@@ -73,9 +86,11 @@ bun dev       # 或: bun dev
 
 | 命令 | 说明 |
 |------|------|
-| `bu'n dev` / `bun dev` | WXT 开发模式 |
+| `bun dev` / `bun dev` | WXT 开发模式 |
 | `bun dev:firefox` | Firefox 开发模式 |
 | `bun build` | 生产构建 |
+| `bun zip` | 构建 Chrome 扩展发布包（.zip 文件） |
+| `bun zip:firefox` | 构建 Firefox 扩展发布包（.zip 文件） |
 | `bun compile` | `tsc --noEmit` |
 | `bun test` / `bun test lib/` | 单元测试（如精炼逻辑） |
 | `bun check` / `bun fix` | Ultracite（Biome）检查或自动修复 |
