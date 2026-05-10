@@ -6,6 +6,10 @@ import {
 } from './capture-list';
 import type { CapturedRequest } from './types/requests';
 
+/**
+ * Build a minimal captured request fixture and allow each test to override the
+ * fields relevant to the behavior under test.
+ */
 function baseRequest(over: Partial<CapturedRequest> = {}): CapturedRequest {
 	return {
 		captureId: 'r1',

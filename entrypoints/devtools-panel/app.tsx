@@ -22,6 +22,10 @@ import { StatusBar } from './components/status-bar';
 import { useAnalysisQueue } from './hooks/use-analysis-queue';
 import { useBridgeConnection } from './hooks/use-bridge-connection';
 
+/**
+ * Main DevTools panel UI. It receives captured requests from the background
+ * bridge, keeps a de-duplicated visible list, and queues AI analysis work.
+ */
 export default function App() {
 	const [settings, setSettings] = useState<ExtensionSettings | null>(null);
 	const [capturedCount, setCapturedCount] = useState(0);
@@ -47,6 +51,10 @@ export default function App() {
 	const { analysisById, analyzingIds, enqueueAnalysis } =
 		useAnalysisQueue(settings);
 
+	/**
+	 * Add a captured request once per endpoint path and immediately enqueue the
+	 * same request for analysis without relying on async React state updaters.
+	 */
 	const handleRequestCaptured = useCallback(
 		(request: CapturedRequest) => {
 			const next = appendUniqueRequestByPath(
@@ -94,6 +102,7 @@ export default function App() {
 		};
 	}, []);
 
+	/** Reset the visible capture session and notify the DevTools bridge. */
 	const handleClearCaptures = () => {
 		setCapturedCount(0);
 		capturedRequestsRef.current = [];
@@ -105,6 +114,7 @@ export default function App() {
 		});
 	};
 
+	/** Export the currently selected capture rows in the requested format. */
 	const exportSelected = useCallback(
 		(format: 'json' | 'markdown') => {
 			const selectedSet = new Set(selectedExportIds);
@@ -129,6 +139,7 @@ export default function App() {
 		[analysisById, capturedRequests, selectedExportIds],
 	);
 
+	/** Retry AI analysis for a row that is still present in the capture table. */
 	const handleRetryAnalysis = (captureId: string) => {
 		const req = requestsByIdRef.current[captureId];
 		if (req) {

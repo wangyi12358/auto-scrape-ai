@@ -2,6 +2,11 @@ import type { CapturedRequest } from './types/requests';
 
 export const MAX_CAPTURED_REQUESTS = 300;
 
+/**
+ * Convert a request URL into the endpoint identity used for panel de-duplication.
+ * Search parameters and hashes are intentionally ignored; invalid URLs are
+ * returned unchanged so callers can still compare opaque request identifiers.
+ */
 export function normalizeRequestPath(raw: string): string {
 	try {
 		const u = new URL(raw);
