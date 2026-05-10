@@ -29,9 +29,9 @@ A [WXT](https://wxt.dev/) + React browser extension that captures HTTP traffic i
 ### Option 2: Build from source for development
 
 ```bash
-bun install   # or: bun install
+bun install
 cp .env.example .env.local   # optional: defaults for local dev (see below)
-bun dev       # or: bun dev
+bun run dev
 ```
 
 Load the unpacked extension from `.output/chrome-mv3-dev` (path may vary by WXT version). Open a tab, press **F12**, then choose the **Auto Scrape AI** panel. Configure **extension options** (API key, base URL, filters, sampling).
@@ -84,14 +84,14 @@ Full **response bodies** are read in the **DevTools** script (`chrome.devtools.n
 
 | Command | Description |
 |---------|-------------|
-| `bun dev` / `bun dev` | WXT dev server |
-| `bun dev:firefox` | WXT dev (Firefox) |
-| `bun build` | Production build |
-| `bun zip` | Build Chrome extension release package (.zip file) |
-| `bun zip:firefox` | Build Firefox extension release package (.zip file) |
-| `bun compile` | `tsc --noEmit` |
+| `bun run dev` | WXT dev server |
+| `bun run dev:firefox` | WXT dev (Firefox) |
+| `bun run build` | Production build |
+| `bun run zip` | Build Chrome extension release package (.zip file) |
+| `bun run zip:firefox` | Build Firefox extension release package (.zip file) |
+| `bun run compile` | `tsc --noEmit` |
 | `bun test` / `bun test lib/` | Unit tests (e.g. refiner) |
-| `bun check` / `bun fix` | Ultracite (Biome) |
+| `bun run check` / `bun run fix` | Ultracite (Biome) |
 
 ## License / privacy
 
