@@ -1,5 +1,6 @@
 import { Typography } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { appendUniqueRequestByPath } from '@/lib/capture-list';
 import {
 	buildExportRecords,
 	downloadTextFile,
@@ -31,9 +32,11 @@ export default function App() {
 		useState<CapturedRequest | null>(null);
 	const [selectedExportIds, setSelectedExportIds] = useState<string[]>([]);
 
+	const capturedRequestsRef = useRef<CapturedRequest[]>([]);
 	const requestsByIdRef = useRef<Record<string, CapturedRequest>>({});
 
 	useEffect(() => {
+		capturedRequestsRef.current = capturedRequests;
 		const byId: Record<string, CapturedRequest> = {};
 		for (const req of capturedRequests) {
 			byId[req.captureId] = req;
@@ -46,23 +49,17 @@ export default function App() {
 
 	const handleRequestCaptured = useCallback(
 		(request: CapturedRequest) => {
-			let added = false;
-			setCapturedRequests((prev) => {
-				const pathKey = normalizePathUrl(request.url);
-				const duplicated = prev.some(
-					(item) => normalizePathUrl(item.url) === pathKey,
-				);
-				if (duplicated) {
-					return prev;
-				}
-				added = true;
-				const next = [request, ...prev];
-				return next.slice(0, 300);
-			});
-			if (added) {
-				setCapturedCount((n) => n + 1);
-				enqueueAnalysis(request);
+			const next = appendUniqueRequestByPath(
+				capturedRequestsRef.current,
+				request,
+			);
+			if (!next.added) {
+				return;
 			}
+			capturedRequestsRef.current = next.requests;
+			setCapturedRequests(next.requests);
+			setCapturedCount((n) => n + 1);
+			enqueueAnalysis(request);
 		},
 		[enqueueAnalysis],
 	);
@@ -99,6 +96,7 @@ export default function App() {
 
 	const handleClearCaptures = () => {
 		setCapturedCount(0);
+		capturedRequestsRef.current = [];
 		setCapturedRequests([]);
 		setSelectedExportIds([]);
 		sendToBridge({
@@ -197,13 +195,4 @@ export default function App() {
 			/>
 		</div>
 	);
-}
-
-function normalizePathUrl(raw: string): string {
-	try {
-		const u = new URL(raw);
-		return `${u.origin}${u.pathname}`;
-	} catch {
-		return raw;
-	}
 }
