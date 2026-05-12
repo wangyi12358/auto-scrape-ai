@@ -31,9 +31,9 @@
 ### 方式二：从源码构建开发
 
 ```bash
-bun install   # 或: bun install
+bun install
 cp .env.example .env.local   # 可选：本地默认配置（见下文）
-bun dev       # 或: bun dev
+bun run dev
 ```
 
 在 `chrome://extensions` 中加载 **未打包扩展**，目录一般为 `.output/chrome-mv3-dev`（具体以当前 WXT 版本为准）。在目标页面按 **F12**，切换到 **Auto Scrape AI** 面板。在 **扩展选项** 中填写 API 与过滤、采样等设置。
@@ -86,14 +86,14 @@ bun dev       # 或: bun dev
 
 | 命令 | 说明 |
 |------|------|
-| `bun dev` / `bun dev` | WXT 开发模式 |
-| `bun dev:firefox` | Firefox 开发模式 |
-| `bun build` | 生产构建 |
-| `bun zip` | 构建 Chrome 扩展发布包（.zip 文件） |
-| `bun zip:firefox` | 构建 Firefox 扩展发布包（.zip 文件） |
-| `bun compile` | `tsc --noEmit` |
+| `bun run dev` | WXT 开发模式 |
+| `bun run dev:firefox` | Firefox 开发模式 |
+| `bun run build` | 生产构建 |
+| `bun run zip` | 构建 Chrome 扩展发布包（.zip 文件） |
+| `bun run zip:firefox` | 构建 Firefox 扩展发布包（.zip 文件） |
+| `bun run compile` | `tsc --noEmit` |
 | `bun test` / `bun test lib/` | 单元测试（如精炼逻辑） |
-| `bun check` / `bun fix` | Ultracite（Biome）检查或自动修复 |
+| `bun run check` / `bun run fix` | Ultracite（Biome）检查或自动修复 |
 
 ## 许可与隐私
 
