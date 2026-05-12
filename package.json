@@ -1,11 +1,14 @@
 {
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.63",
+    "ai": "^6.0.177",
     "antd": "^5.27.6",
     "openai": "^6.37.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "shiki": "^4.0.2"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.14",

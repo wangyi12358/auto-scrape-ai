@@ -7,6 +7,13 @@ const MAX_REQUEST_SUMMARY_CHARS = 1200;
 const MAX_RESPONSE_SUMMARY_CHARS = 2800;
 const LAST_RESPONSE_SUMMARY_BY_PATH = new Map<string, string>();
 
+export type TypeDefinitionLanguage = 'typescript' | 'go' | 'pydantic';
+
+export interface TypeDefinitionResult {
+	code: string;
+	language: TypeDefinitionLanguage;
+}
+
 function normalizePathUrl(raw: string): string {
 	try {
 		const u = new URL(raw);
@@ -104,6 +111,7 @@ export async function analyzeCapturedRequest(
 		responseBodySummary: responseBodySummaryForPrompt,
 		wasSanitized: refined.wasSanitized,
 	};
+
 	const client = new OpenAI({
 		apiKey: settings.ai.apiKey,
 		baseURL: settings.ai.baseUrl,
@@ -120,12 +128,97 @@ export async function analyzeCapturedRequest(
 		`输入 JSON：${JSON.stringify(promptPayload)}`,
 	].join('\n');
 
-	const completion = await client.chat.completions.create({
-		model: settings.ai.model,
-		temperature: 0.2,
-		messages: [{ role: 'user', content: prompt }],
+	try {
+		const completion = await client.chat.completions.create({
+			model: settings.ai.model,
+			temperature: 0.2,
+			messages: [{ role: 'user', content: prompt }],
+		});
+		const content = completion.choices[0]?.message?.content ?? '';
+		return coerceAnalysis(content);
+	} catch (error) {
+		console.error('[AI Analysis Error]', {
+			error,
+			baseURL: settings.ai.baseUrl,
+			model: settings.ai.model,
+			apiKeyLength: settings.ai.apiKey?.length ?? 0,
+		});
+		throw error;
+	}
+}
+
+function coerceTypeDefinition(raw: string): string {
+	const t = raw.trim();
+	const fencePattern = /^```[a-zA-Z]*\n?([\s\S]*?)\n?```$/;
+	const match = t.match(fencePattern);
+	if (match) {
+		return match[1].trim();
+	}
+	return t;
+}
+
+export async function generateTypeDefinition(
+	request: CapturedRequest,
+	settings: ExtensionSettings,
+	language: TypeDefinitionLanguage,
+): Promise<TypeDefinitionResult> {
+	const refined = refineRequest(request, settings);
+	const compactRequestSummary = compactSummary(
+		refined.requestBodySummary,
+		MAX_REQUEST_SUMMARY_CHARS,
+	);
+	const compactResponseSummary = compactSummary(
+		refined.responseBodySummary,
+		MAX_RESPONSE_SUMMARY_CHARS,
+	);
+
+	const languageInstructions: Record<TypeDefinitionLanguage, string> = {
+		typescript:
+			'生成 TypeScript Interface 定义。使用 export interface，字段类型使用 number/string/boolean/array/object 等。添加必要的注释。',
+		go: '生成 Go Struct 定义。使用 json tag，添加必要的注释。包名使用 types。',
+		pydantic:
+			'生成 Pydantic BaseModel 定义。使用 Python 类型注解，添加 Field 描述和必要的注释。',
+	};
+
+	const promptPayload = {
+		url: refined.url,
+		method: refined.method,
+		requestBodySummary: compactRequestSummary,
+		responseBodySummary: compactResponseSummary,
+	};
+
+	const client = new OpenAI({
+		apiKey: settings.ai.apiKey,
+		baseURL: settings.ai.baseUrl,
+		dangerouslyAllowBrowser: true,
 	});
 
-	const content = completion.choices[0]?.message?.content ?? '';
-	return coerceAnalysis(content);
+	const prompt = [
+		'你是一个类型定义生成助手。',
+		'根据以下 API 请求和响应信息，生成对应语言的数据类型定义。',
+		languageInstructions[language],
+		'只返回代码，不要输出任何额外文本或说明。不要使用 Markdown 代码围栏。',
+		`输入信息：${JSON.stringify(promptPayload)}`,
+	].join('\n');
+
+	try {
+		const completion = await client.chat.completions.create({
+			model: settings.ai.model,
+			temperature: 0.2,
+			messages: [{ role: 'user', content: prompt }],
+		});
+		const content = completion.choices[0]?.message?.content ?? '';
+		return {
+			code: coerceTypeDefinition(content),
+			language,
+		};
+	} catch (error) {
+		console.error('[TypeDefinition Error]', {
+			error,
+			baseURL: settings.ai.baseUrl,
+			model: settings.ai.model,
+			language,
+		});
+		throw error;
+	}
 }

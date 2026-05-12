@@ -1,113 +1,29 @@
-import { Button, Drawer, Space, Spin, Table, Typography } from 'antd';
+import { Typography } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import type { Browser } from 'wxt/browser';
-import {
-	analyzeCapturedRequest,
-	type EndpointAnalysis,
-} from '@/lib/ai/analyze-request';
-import {
-	BRIDGE_PORT_NAME,
-	type BridgeMessage,
-	BridgeMessageType,
-	isBridgeMessage,
-} from '@/lib/messages';
-import { bridgeHintText } from '@/lib/messaging/bridge-hints';
+import { BridgeMessageType } from '@/lib/messages';
 import {
 	EXTENSION_SETTINGS_STORAGE_KEY,
 	loadExtensionSettings,
 } from '@/lib/settings-storage';
 import type { CapturedRequest } from '@/lib/types/requests';
 import type { ExtensionSettings } from '@/lib/types/settings';
-
-function formatTime(ms: number): string {
-	return new Date(ms).toLocaleTimeString('zh-CN', {
-		hour12: false,
-	});
-}
-
-function normalizePathUrl(raw: string): string {
-	try {
-		const u = new URL(raw);
-		return `${u.origin}${u.pathname}`;
-	} catch {
-		return raw;
-	}
-}
-
-const FAILED_ANALYSIS: EndpointAnalysis = {
-	shortDescription: '分析失败，请检查 API Key / Base URL / 模型配置。',
-	detailedDescription:
-		'AI 请求失败。请在扩展选项页确认 Base URL、API Key、模型 ID 是否正确。',
-};
-
-function AnalysisMarkdown({ markdown }: { markdown: string }) {
-	return (
-		<div className='prose prose-sm max-w-none'>
-			<ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
-		</div>
-	);
-}
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-	return new Promise<T>((resolve, reject) => {
-		const timer = globalThis.setTimeout(() => {
-			reject(new Error('analysis-timeout'));
-		}, timeoutMs);
-		promise
-			.then((value) => {
-				globalThis.clearTimeout(timer);
-				resolve(value);
-			})
-			.catch((err) => {
-				globalThis.clearTimeout(timer);
-				reject(err);
-			});
-	});
-}
-
-interface CaptureTableRow {
-	key: string;
-	method: string;
-	mimeType: string;
-	shortDescription: string;
-	status: number;
-	time: string;
-	url: string;
-}
+import { CaptureDetailDrawer } from './components/capture-detail-drawer';
+import { CaptureTable } from './components/capture-table';
+import { ControlBar } from './components/control-bar';
+import { StatusBar } from './components/status-bar';
+import { useAnalysisQueue } from './hooks/use-analysis-queue';
+import { useBridgeConnection } from './hooks/use-bridge-connection';
 
 export default function App() {
-	const portRef = useRef<Browser.runtime.Port | null>(null);
-	const [recording, setRecording] = useState(false);
+	const [settings, setSettings] = useState<ExtensionSettings | null>(null);
 	const [capturedCount, setCapturedCount] = useState(0);
 	const [capturedRequests, setCapturedRequests] = useState<CapturedRequest[]>(
 		[],
 	);
-	const [settings, setSettings] = useState<ExtensionSettings | null>(null);
-	const [analysisById, setAnalysisById] = useState<
-		Record<string, EndpointAnalysis>
-	>({});
-	const [analyzingIds, setAnalyzingIds] = useState<Record<string, true>>({});
 	const [selectedCapture, setSelectedCapture] =
 		useState<CapturedRequest | null>(null);
-	const [bridgeHint, setBridgeHint] = useState<string>('');
-	const queueRef = useRef<CapturedRequest[]>([]);
-	const runningCountRef = useRef(0);
-	const settingsRef = useRef<ExtensionSettings | null>(null);
-	const requestsByIdRef = useRef<Record<string, CapturedRequest>>({});
-	const analysisByIdRef = useRef<Record<string, EndpointAnalysis>>({});
-	const analyzingIdsRef = useRef<Record<string, true>>({});
 
-	useEffect(() => {
-		settingsRef.current = settings;
-	}, [settings]);
-	useEffect(() => {
-		analysisByIdRef.current = analysisById;
-	}, [analysisById]);
-	useEffect(() => {
-		analyzingIdsRef.current = analyzingIds;
-	}, [analyzingIds]);
+	const requestsByIdRef = useRef<Record<string, CapturedRequest>>({});
 
 	useEffect(() => {
 		const byId: Record<string, CapturedRequest> = {};
@@ -117,86 +33,35 @@ export default function App() {
 		requestsByIdRef.current = byId;
 	}, [capturedRequests]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: limits in deps refresh `pumpQueue` so the effect below can drain the queue
-	const pumpQueue = useCallback(
-		function pumpQueue(): void {
-			const snap = settingsRef.current;
-			const maxConcurrent = Math.max(
-				1,
-				Math.min(32, snap?.analysis.maxConcurrentAnalysis ?? 4),
-			);
-			const timeoutMs = Math.max(
-				10_000,
-				Math.min(600_000, snap?.analysis.analysisTimeoutMs ?? 60_000),
-			);
+	const { analysisById, analyzingIds, enqueueAnalysis } =
+		useAnalysisQueue(settings);
 
-			while (
-				runningCountRef.current < maxConcurrent &&
-				queueRef.current.length > 0
-			) {
-				const req = queueRef.current.shift();
-				if (!req) {
-					return;
+	const handleRequestCaptured = useCallback(
+		(request: CapturedRequest) => {
+			let added = false;
+			setCapturedRequests((prev) => {
+				const pathKey = normalizePathUrl(request.url);
+				const duplicated = prev.some(
+					(item) => normalizePathUrl(item.url) === pathKey,
+				);
+				if (duplicated) {
+					return prev;
 				}
-				const currentSettings = settingsRef.current;
-				if (!(currentSettings?.ai.apiKey && currentSettings.ai.baseUrl)) {
-					return;
-				}
-				runningCountRef.current += 1;
-				setAnalyzingIds((prev) => ({ ...prev, [req.captureId]: true }));
-				withTimeout(analyzeCapturedRequest(req, currentSettings), timeoutMs)
-					.then((analysis) => {
-						setAnalysisById((prev) => ({ ...prev, [req.captureId]: analysis }));
-					})
-					.catch(() => {
-						setAnalysisById((prev) => ({
-							...prev,
-							[req.captureId]: FAILED_ANALYSIS,
-						}));
-					})
-					.finally(() => {
-						runningCountRef.current = Math.max(0, runningCountRef.current - 1);
-						setAnalyzingIds((prev) => {
-							const next = { ...prev };
-							delete next[req.captureId];
-							return next;
-						});
-						pumpQueue();
-					});
+				added = true;
+				const next = [request, ...prev];
+				return next.slice(0, 300);
+			});
+			if (added) {
+				setCapturedCount((n) => n + 1);
+				enqueueAnalysis(request);
 			}
 		},
-		[
-			settings?.analysis.maxConcurrentAnalysis,
-			settings?.analysis.analysisTimeoutMs,
-		],
+		[enqueueAnalysis],
 	);
 
-	const enqueueAnalysis = useCallback(
-		(request: CapturedRequest, force = false): void => {
-			const currentSettings = settingsRef.current;
-			if (!(currentSettings?.ai.apiKey && currentSettings.ai.baseUrl)) {
-				return;
-			}
-			if (!force) {
-				if (
-					analysisByIdRef.current[request.captureId] ||
-					analyzingIdsRef.current[request.captureId]
-				) {
-					return;
-				}
-				if (queueRef.current.some((x) => x.captureId === request.captureId)) {
-					return;
-				}
-			}
-			queueRef.current.push(request);
-			pumpQueue();
-		},
-		[pumpQueue],
-	);
-
-	useEffect(() => {
-		pumpQueue();
-	}, [pumpQueue]);
+	const { recording, bridgeHint, sendToBridge } = useBridgeConnection({
+		onRequestCaptured: handleRequestCaptured,
+	});
 
 	useEffect(() => {
 		loadExtensionSettings()
@@ -219,61 +84,26 @@ export default function App() {
 				.catch(() => undefined);
 		};
 		browser.storage.onChanged.addListener(onStorage);
-
-		const port = browser.runtime.connect({ name: BRIDGE_PORT_NAME });
-		portRef.current = port;
-
-		const onMessage = (raw: unknown): void => {
-			if (!isBridgeMessage(raw)) {
-				return;
-			}
-			const msg = raw as BridgeMessage;
-			if (msg.type === BridgeMessageType.RECORDING_TOGGLED) {
-				setRecording(msg.payload.active);
-				setBridgeHint(bridgeHintText(msg.payload.reason));
-			}
-			if (msg.type === BridgeMessageType.REQUEST_CAPTURED) {
-				const request = msg.payload.request;
-				let added = false;
-				setCapturedRequests((prev) => {
-					const pathKey = normalizePathUrl(request.url);
-					const duplicated = prev.some(
-						(item) => normalizePathUrl(item.url) === pathKey,
-					);
-					if (duplicated) {
-						return prev;
-					}
-					added = true;
-					const next = [request, ...prev];
-					return next.slice(0, 300);
-				});
-				if (added) {
-					setCapturedCount((n) => n + 1);
-					enqueueAnalysis(request);
-				}
-			}
-		};
-
-		port.onMessage.addListener(onMessage);
 		return () => {
 			browser.storage.onChanged.removeListener(onStorage);
-			port.onMessage.removeListener(onMessage);
-			port.disconnect();
-			portRef.current = null;
 		};
-	}, [enqueueAnalysis]);
+	}, []);
 
-	function sendToBridge(message: BridgeMessage): void {
-		const p = portRef.current;
-		if (!p) {
-			return;
+	const handleClearCaptures = () => {
+		setCapturedCount(0);
+		setCapturedRequests([]);
+		sendToBridge({
+			type: BridgeMessageType.CLEAR_CAPTURES,
+			payload: {},
+		});
+	};
+
+	const handleRetryAnalysis = (captureId: string) => {
+		const req = requestsByIdRef.current[captureId];
+		if (req) {
+			enqueueAnalysis(req, true);
 		}
-		try {
-			p.postMessage(message);
-		} catch {
-			/* disconnected */
-		}
-	}
+	};
 
 	return (
 		<div className='min-h-screen p-4'>
@@ -286,209 +116,52 @@ export default function App() {
 				UI。请先打开目标页的开发者工具， 再在此开始录制。
 			</Typography.Text>
 
-			<div className='mt-4 flex flex-wrap gap-2'>
-				<Button
-					onClick={() =>
-						sendToBridge({
-							type: BridgeMessageType.START_RECORDING,
-							payload: {},
-						})
+			<ControlBar
+				hasApiKey={!!(settings?.ai.apiKey && settings?.ai.baseUrl)}
+				hasCaptures={capturedRequests.length > 0}
+				onAnalyzeAll={() => {
+					for (const req of capturedRequests) {
+						enqueueAnalysis(req, false);
 					}
-					type='primary'
-				>
-					开始录制
-				</Button>
-				<Button
-					onClick={() =>
-						sendToBridge({
-							type: BridgeMessageType.STOP_RECORDING,
-							payload: {},
-						})
-					}
-				>
-					停止录制
-				</Button>
-				<Button
-					onClick={() => {
-						setCapturedCount(0);
-						setCapturedRequests([]);
-						setAnalysisById({});
-						setAnalyzingIds({});
-						queueRef.current = [];
-						runningCountRef.current = 0;
-						sendToBridge({
-							type: BridgeMessageType.CLEAR_CAPTURES,
-							payload: {},
-						});
-					}}
-				>
-					清空会话计数
-				</Button>
-				<Button
-					disabled={
-						!(settings?.ai.apiKey && settings?.ai.baseUrl) ||
-						capturedRequests.length === 0
-					}
-					onClick={() => {
-						for (const req of capturedRequests) {
-							enqueueAnalysis(req, false);
-						}
-					}}
-				>
-					一键分析待分析
-				</Button>
-			</div>
-
-			<div className='mt-4 space-y-1 font-mono text-xs'>
-				<div>
-					录制状态：
-					<span>{recording ? '录制中' : '未录制'}</span>
-				</div>
-				<div>
-					已通过筛选的请求数：
-					<span>{capturedCount}</span>
-				</div>
-				{bridgeHint ? <div className='text-amber-600'>{bridgeHint}</div> : null}
-				{settings?.ai.apiKey ? null : (
-					<div className='text-amber-600'>
-						未配置 API Key，当前仅显示请求列表。请到扩展选项页配置 API Key 与
-						Base URL。
-					</div>
-				)}
-			</div>
-
-			<Table<CaptureTableRow>
-				columns={[
-					{
-						title: '概要',
-						key: 'reqMeta',
-						width: 132,
-						render: (_: unknown, row: CaptureTableRow) => {
-							const line = `${row.method} · ${row.status} · ${row.mimeType}`;
-							return (
-								<Typography.Text
-									className='font-mono text-xs'
-									ellipsis={{ tooltip: line }}
-								>
-									{line}
-								</Typography.Text>
-							);
-						},
-					},
-					{
-						title: 'URL',
-						dataIndex: 'url',
-						width: 300,
-						key: 'url',
-						render: (value: string) => (
-							<Typography.Text
-								copyable={{ text: value }}
-								ellipsis={{ tooltip: value }}
-							>
-								{value}
-							</Typography.Text>
-						),
-					},
-					{
-						title: '接口作用',
-						dataIndex: 'shortDescription',
-						key: 'shortDescription',
-						render: (value: string, row: CaptureTableRow) =>
-							analyzingIds[row.key] ? (
-								<Space size='small'>
-									<Spin size='small' />
-									<Typography.Text type='secondary'>分析中...</Typography.Text>
-								</Space>
-							) : (
-								<Typography.Text ellipsis={{ tooltip: value }}>
-									{value || '待分析'}
-								</Typography.Text>
-							),
-					},
-					{
-						title: '详情',
-						dataIndex: 'action',
-						key: 'action',
-						width: 180,
-						render: (_: unknown, row: CaptureTableRow) => (
-							<Space size='small'>
-								<Button
-									onClick={() =>
-										setSelectedCapture(
-											capturedRequests.find((x) => x.captureId === row.key) ??
-												null,
-										)
-									}
-									size='small'
-								>
-									详情
-								</Button>
-								<Button
-									disabled={!!analyzingIds[row.key]}
-									onClick={() => {
-										const req = requestsByIdRef.current[row.key];
-										if (!req) {
-											return;
-										}
-										enqueueAnalysis(req, true);
-									}}
-									size='small'
-								>
-									重试分析
-								</Button>
-							</Space>
-						),
-					},
-				]}
-				dataSource={capturedRequests.map(
-					(req): CaptureTableRow => ({
-						key: req.captureId,
-						time: formatTime(req.finishedMs),
-						method: req.method,
-						status: req.status,
-						mimeType: req.mimeType ?? '-',
-						url: req.url,
-						shortDescription:
-							analysisById[req.captureId]?.shortDescription ?? '',
-					}),
-				)}
-				locale={{
-					emptyText: '暂无拦截记录。点击「开始录制」后在页面触发请求。',
 				}}
-				pagination={false}
-				scroll={{ x: 640 }}
-				size='small'
+				onClearCaptures={handleClearCaptures}
+				onSendToBridge={sendToBridge}
 			/>
 
-			<Drawer
+			<StatusBar
+				bridgeHint={bridgeHint}
+				capturedCount={capturedCount}
+				hasApiKey={!!(settings?.ai.apiKey && settings?.ai.baseUrl)}
+				recording={recording}
+			/>
+
+			<CaptureTable
+				analysisById={analysisById}
+				analyzingIds={analyzingIds}
+				capturedRequests={capturedRequests}
+				onRetryAnalysis={handleRetryAnalysis}
+				onSelectCapture={setSelectedCapture}
+				requestsById={requestsByIdRef.current}
+			/>
+
+			<CaptureDetailDrawer
+				analysis={
+					selectedCapture ? analysisById[selectedCapture.captureId] : undefined
+				}
+				capture={selectedCapture}
 				onClose={() => setSelectedCapture(null)}
 				open={!!selectedCapture}
-				title='接口详情'
-				width={720}
-			>
-				{selectedCapture && (
-					<div className='space-y-4'>
-						<Typography.Text
-							copyable={{ text: selectedCapture.url }}
-							ellipsis={{ tooltip: selectedCapture.url }}
-						>
-							{selectedCapture.method} {selectedCapture.url}
-						</Typography.Text>
-						<div>
-							<Typography.Title level={5}>详细说明</Typography.Title>
-							<AnalysisMarkdown
-								markdown={
-									analysisById[selectedCapture.captureId]
-										?.detailedDescription ?? '暂无分析结果。'
-								}
-							/>
-						</div>
-						<Typography.Text type='secondary'>
-							类型定义功能已关闭。
-						</Typography.Text>
-					</div>
-				)}
-			</Drawer>
+				settings={settings}
+			/>
 		</div>
 	);
+}
+
+function normalizePathUrl(raw: string): string {
+	try {
+		const u = new URL(raw);
+		return `${u.origin}${u.pathname}`;
+	} catch {
+		return raw;
+	}
 }
