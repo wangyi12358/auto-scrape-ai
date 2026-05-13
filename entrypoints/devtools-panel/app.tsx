@@ -1,5 +1,12 @@
 import { Typography } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+	buildExportRecords,
+	downloadTextFile,
+	exportFilename,
+	recordsToJson,
+	recordsToMarkdown,
+} from '@/lib/export-captures';
 import { BridgeMessageType } from '@/lib/messages';
 import {
 	EXTENSION_SETTINGS_STORAGE_KEY,
@@ -22,6 +29,7 @@ export default function App() {
 	);
 	const [selectedCapture, setSelectedCapture] =
 		useState<CapturedRequest | null>(null);
+	const [selectedExportIds, setSelectedExportIds] = useState<string[]>([]);
 
 	const requestsByIdRef = useRef<Record<string, CapturedRequest>>({});
 
@@ -92,11 +100,36 @@ export default function App() {
 	const handleClearCaptures = () => {
 		setCapturedCount(0);
 		setCapturedRequests([]);
+		setSelectedExportIds([]);
 		sendToBridge({
 			type: BridgeMessageType.CLEAR_CAPTURES,
 			payload: {},
 		});
 	};
+
+	const exportSelected = useCallback(
+		(format: 'json' | 'markdown') => {
+			const selectedSet = new Set(selectedExportIds);
+			const ordered = capturedRequests.filter((r) =>
+				selectedSet.has(r.captureId),
+			);
+			const records = buildExportRecords(ordered, analysisById);
+			if (format === 'json') {
+				downloadTextFile(
+					exportFilename('json'),
+					recordsToJson(records),
+					'application/json;charset=utf-8',
+				);
+				return;
+			}
+			downloadTextFile(
+				exportFilename('md'),
+				recordsToMarkdown(records),
+				'text/markdown;charset=utf-8',
+			);
+		},
+		[analysisById, capturedRequests, selectedExportIds],
+	);
 
 	const handleRetryAnalysis = (captureId: string) => {
 		const req = requestsByIdRef.current[captureId];
@@ -117,6 +150,7 @@ export default function App() {
 			</Typography.Text>
 
 			<ControlBar
+				exportSelectionCount={selectedExportIds.length}
 				hasApiKey={!!(settings?.ai.apiKey && settings?.ai.baseUrl)}
 				hasCaptures={capturedRequests.length > 0}
 				onAnalyzeAll={() => {
@@ -125,6 +159,12 @@ export default function App() {
 					}
 				}}
 				onClearCaptures={handleClearCaptures}
+				onExportJson={() => {
+					exportSelected('json');
+				}}
+				onExportMarkdown={() => {
+					exportSelected('markdown');
+				}}
 				onSendToBridge={sendToBridge}
 			/>
 
@@ -141,7 +181,9 @@ export default function App() {
 				capturedRequests={capturedRequests}
 				onRetryAnalysis={handleRetryAnalysis}
 				onSelectCapture={setSelectedCapture}
+				onSelectedIdsChange={setSelectedExportIds}
 				requestsById={requestsByIdRef.current}
+				selectedIds={selectedExportIds}
 			/>
 
 			<CaptureDetailDrawer

@@ -24,7 +24,9 @@ interface CaptureTableProps {
 	capturedRequests: CapturedRequest[];
 	onRetryAnalysis: (captureId: string) => void;
 	onSelectCapture: (capture: CapturedRequest) => void;
+	onSelectedIdsChange: (ids: string[]) => void;
 	requestsById: Record<string, CapturedRequest>;
+	selectedIds: string[];
 }
 
 export function CaptureTable({
@@ -34,6 +36,8 @@ export function CaptureTable({
 	onSelectCapture,
 	onRetryAnalysis,
 	requestsById,
+	selectedIds,
+	onSelectedIdsChange,
 }: CaptureTableProps) {
 	return (
 		<Table<CaptureTableRow>
@@ -128,6 +132,13 @@ export function CaptureTable({
 				emptyText: '暂无拦截记录。点击「开始录制」后在页面触发请求。',
 			}}
 			pagination={false}
+			rowSelection={{
+				selectedRowKeys: selectedIds,
+				onChange: (keys) => {
+					onSelectedIdsChange(keys.map(String));
+				},
+				preserveSelectedRowKeys: true,
+			}}
 			scroll={{ x: 640 }}
 			size='small'
 		/>

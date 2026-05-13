@@ -1,24 +1,32 @@
-import { Button } from 'antd';
+import { Button, Space, Typography } from 'antd';
 import type { BridgeMessage } from '@/lib/messages';
 import { BridgeMessageType } from '@/lib/messages';
 
 interface ControlBarProps {
+	exportSelectionCount: number;
 	hasApiKey: boolean;
 	hasCaptures: boolean;
 	onAnalyzeAll: () => void;
 	onClearCaptures: () => void;
+	onExportJson: () => void;
+	onExportMarkdown: () => void;
 	onSendToBridge: (message: BridgeMessage) => void;
 }
 
 export function ControlBar({
 	hasApiKey,
 	hasCaptures,
+	exportSelectionCount,
 	onSendToBridge,
 	onClearCaptures,
 	onAnalyzeAll,
+	onExportJson,
+	onExportMarkdown,
 }: ControlBarProps) {
+	const canExport = exportSelectionCount > 0;
+
 	return (
-		<div className='mt-4 flex flex-wrap gap-2'>
+		<div className='mt-4 flex flex-wrap items-center gap-2'>
 			<Button
 				onClick={() =>
 					onSendToBridge({
@@ -44,6 +52,19 @@ export function ControlBar({
 			<Button disabled={!(hasApiKey && hasCaptures)} onClick={onAnalyzeAll}>
 				一键分析待分析
 			</Button>
+			{canExport ? (
+				<Typography.Text className='text-xs' type='secondary'>
+					已选 {exportSelectionCount} 条
+				</Typography.Text>
+			) : null}
+			<Space size='small' wrap>
+				<Button disabled={!canExport} onClick={onExportJson}>
+					导出 JSON
+				</Button>
+				<Button disabled={!canExport} onClick={onExportMarkdown}>
+					导出 Markdown
+				</Button>
+			</Space>
 		</div>
 	);
 }
