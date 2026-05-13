@@ -8,9 +8,24 @@ interface CodeHighlightProps {
 
 const LANG_MAP: Record<string, BundledLanguage> = {
 	typescript: 'typescript',
+	zod: 'typescript',
 	go: 'go',
 	pydantic: 'python',
 	python: 'python',
+	rust: 'rust',
+	kotlin: 'kotlin',
+	swift: 'swift',
+	java: 'java',
+	csharp: 'csharp',
+	'json-schema': 'json',
+	protobuf: 'proto',
+	'ts-fetch': 'typescript',
+	'js-fetch': 'javascript',
+	'python-requests': 'python',
+	'python-httpx': 'python',
+	'go-http': 'go',
+	curl: 'bash',
+	'node-axios': 'typescript',
 };
 
 export function CodeHighlight({ code, language }: CodeHighlightProps) {

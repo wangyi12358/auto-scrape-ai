@@ -7,7 +7,7 @@ import {
 } from '@/lib/settings-storage';
 import type { CapturedRequest } from '@/lib/types/requests';
 import type { ExtensionSettings } from '@/lib/types/settings';
-import { CaptureDetailDrawer } from './components/capture-detail-drawer';
+import { CaptureDetailDrawer } from './components/capture-detail';
 import { CaptureTable } from './components/capture-table';
 import { ControlBar } from './components/control-bar';
 import { StatusBar } from './components/status-bar';

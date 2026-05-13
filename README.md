@@ -68,7 +68,9 @@ bun run dev
 | `entrypoints/devtools-panel/` | DevTools 面板 React 界面（表格、AI 分析、详情抽屉） |
 | `entrypoints/popup/`、`entrypoints/options/` | 工具栏弹窗与选项页 |
 | `entrypoints/content.ts` | 内容脚本（如启用） |
+| `components/` | 可复用 React 组件（Markdown 渲染、代码高亮） |
 | `assets/tailwind.css` | Tailwind v4 与 Ant Design reset |
+| `public/` | 静态资源（图标、Logo） |
 | `lib/types/` | 设置与 `CapturedRequest` 等类型 |
 | `lib/messages.ts` | `runtime.connect` 桥接消息类型 |
 | `lib/filter.ts` | 过滤与路径扩展名 |
@@ -77,23 +79,59 @@ bun run dev
 | `lib/settings-storage.ts` | `storage.local` 读写与校验 |
 | `lib/messaging/bridge-role.ts` | 区分 DevTools 与面板端的端口 |
 | `docs/tasks/` | 分任务实现说明 |
+| `docs/AI-FEATURES.md` | AI 功能详细说明与扩展方案 |
 
 ## 架构说明
 
 **完整响应体**只在 **DevTools** 脚本中通过 `chrome.devtools.network` 读取，单独的面板页面无法替代这一能力。面板通过后台/DevTools 桥接（`lib/messages.ts` 中的 `BRIDGE_PORT_NAME`）接收捕获数据。总体分工见 `lib/architecture.ts`。
 
+**数据流**：
+```
+DevTools (capture.ts) → runtime.connect bridge → Background (relay) → Panel (UI)
+```
+
 ## 脚本命令
 
 | 命令 | 说明 |
 |------|------|
+| `bun install` | 安装依赖（自动运行 `wxt prepare`） |
 | `bun run dev` | WXT 开发模式 |
 | `bun run dev:firefox` | Firefox 开发模式 |
 | `bun run build` | 生产构建 |
+| `bun run build:firefox` | Firefox 生产构建 |
 | `bun run zip` | 构建 Chrome 扩展发布包（.zip 文件） |
 | `bun run zip:firefox` | 构建 Firefox 扩展发布包（.zip 文件） |
 | `bun run compile` | `tsc --noEmit` |
 | `bun test` / `bun test lib/` | 单元测试（如精炼逻辑） |
 | `bun run check` / `bun run fix` | Ultracite（Biome）检查或自动修复 |
+
+## 代码质量
+
+- **Biome**：通过 [Ultracite](https://github.com/hunvreus/ultracite) 预设配置，统一代码风格与 Lint 规则
+- **Lefthook**：Git pre-commit 钩子，提交前自动运行 `ultracite fix` 格式化暂存文件
+- **TypeScript**：严格模式，`tsc --noEmit` 类型检查
+
+## CI/CD
+
+项目使用 GitHub Actions 自动发布：
+
+- 推送 `v*` 标签时触发（如 `git tag v1.0.0 && git push --tags`）
+- 自动安装依赖、构建、打包 `.zip`
+- 创建 GitHub Release 并上传构建产物
+
+详见 [`.github/workflows/release.yml`](.github/workflows/release.yml)。
+
+## 技术栈
+
+| 类别 | 技术 |
+|------|------|
+| 构建工具 | [WXT](https://wxt.dev/)（浏览器扩展框架） |
+| 前端 | React 19 + Ant Design 5 + Tailwind CSS v4 |
+| AI | OpenAI SDK（兼容任意 OpenAI API 兼容服务） |
+| 语言 | TypeScript 5（严格模式） |
+| 包管理 | Bun |
+| 代码质量 | Biome（Ultracite 预设）+ Lefthook |
+| Markdown | react-markdown + remark-gfm + Shiki 代码高亮 |
 
 ## 许可与隐私
 

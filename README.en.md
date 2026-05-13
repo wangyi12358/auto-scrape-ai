@@ -66,7 +66,9 @@ Copy `.env.example` to `.env.local` and adjust. Do not commit secrets.
 | `entrypoints/devtools-panel/` | React **DevTools panel** UI (Ant Design table, AI analysis, drawer) |
 | `entrypoints/popup/`, `entrypoints/options/` | Toolbar popup and settings UI |
 | `entrypoints/content.ts` | Content script (if used) |
+| `components/` | Reusable React components (Markdown rendering, code highlighting) |
 | `assets/tailwind.css` | Tailwind v4 + Ant Design reset |
+| `public/` | Static assets (icons, logo) |
 | `lib/types/` | Settings, `CapturedRequest` / refined shapes |
 | `lib/messages.ts` | `runtime.connect` bridge message unions |
 | `lib/filter.ts` | `passesFilter`, path extension helpers |
@@ -75,23 +77,59 @@ Copy `.env.example` to `.env.local` and adjust. Do not commit secrets.
 | `lib/settings-storage.ts` | `storage.local` load/save/validate |
 | `lib/messaging/bridge-role.ts` | Routes DevTools vs panel UI ports |
 | `docs/tasks/` | Numbered implementation notes |
+| `docs/AI-FEATURES.md` | AI features detailed documentation and extension plans |
 
 ## Architecture note
 
 Full **response bodies** are read in the **DevTools** script (`chrome.devtools.network`), not in the panel alone. The panel connects to the background/DevTools bridge (`BRIDGE_PORT_NAME` in `lib/messages.ts`). See `lib/architecture.ts` for the high-level split.
 
+**Data flow**:
+```
+DevTools (capture.ts) → runtime.connect bridge → Background (relay) → Panel (UI)
+```
+
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
+| `bun install` | Install dependencies (auto runs `wxt prepare`) |
 | `bun run dev` | WXT dev server |
 | `bun run dev:firefox` | WXT dev (Firefox) |
 | `bun run build` | Production build |
+| `bun run build:firefox` | Production build (Firefox) |
 | `bun run zip` | Build Chrome extension release package (.zip file) |
 | `bun run zip:firefox` | Build Firefox extension release package (.zip file) |
 | `bun run compile` | `tsc --noEmit` |
 | `bun test` / `bun test lib/` | Unit tests (e.g. refiner) |
 | `bun run check` / `bun run fix` | Ultracite (Biome) |
+
+## Code Quality
+
+- **Biome**: Configured via [Ultracite](https://github.com/hunvreus/ultracite) preset for unified code style and linting rules
+- **Lefthook**: Git pre-commit hook that auto-runs `ultracite fix` on staged files before commit
+- **TypeScript**: Strict mode with `tsc --noEmit` type checking
+
+## CI/CD
+
+The project uses GitHub Actions for automated releases:
+
+- Triggered when pushing `v*` tags (e.g., `git tag v1.0.0 && git push --tags`)
+- Automatically installs dependencies, builds, and packages `.zip`
+- Creates GitHub Release and uploads build artifacts
+
+See [`.github/workflows/release.yml`](.github/workflows/release.yml) for details.
+
+## Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| Build Tool | [WXT](https://wxt.dev/) (Browser Extension Framework) |
+| Frontend | React 19 + Ant Design 5 + Tailwind CSS v4 |
+| AI | OpenAI SDK (compatible with any OpenAI API compatible service) |
+| Language | TypeScript 5 (Strict Mode) |
+| Package Manager | Bun |
+| Code Quality | Biome (Ultracite preset) + Lefthook |
+| Markdown | react-markdown + remark-gfm + Shiki code highlighting |
 
 ## License / privacy
 

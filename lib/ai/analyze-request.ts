@@ -7,11 +7,37 @@ const MAX_REQUEST_SUMMARY_CHARS = 1200;
 const MAX_RESPONSE_SUMMARY_CHARS = 2800;
 const LAST_RESPONSE_SUMMARY_BY_PATH = new Map<string, string>();
 
-export type TypeDefinitionLanguage = 'typescript' | 'go' | 'pydantic';
+export type TypeDefinitionLanguage =
+	| 'typescript'
+	| 'go'
+	| 'pydantic'
+	| 'rust'
+	| 'kotlin'
+	| 'swift'
+	| 'java'
+	| 'csharp'
+	| 'json-schema'
+	| 'zod'
+	| 'protobuf';
 
 export interface TypeDefinitionResult {
 	code: string;
 	language: TypeDefinitionLanguage;
+}
+
+/** 用于生成「复现该 HTTP 请求」的示例脚本（仅用于你有权访问的接口）。 */
+export type CrawlerCodeLanguage =
+	| 'ts-fetch'
+	| 'js-fetch'
+	| 'python-requests'
+	| 'python-httpx'
+	| 'go-http'
+	| 'curl'
+	| 'node-axios';
+
+export interface CrawlerCodeResult {
+	code: string;
+	language: CrawlerCodeLanguage;
 }
 
 function normalizePathUrl(raw: string): string {
@@ -178,6 +204,19 @@ export async function generateTypeDefinition(
 		go: '生成 Go Struct 定义。使用 json tag，添加必要的注释。包名使用 types。',
 		pydantic:
 			'生成 Pydantic BaseModel 定义。使用 Python 类型注解，添加 Field 描述和必要的注释。',
+		rust: '生成 Rust struct，使用 serde 的 Serialize/Deserialize 与 #[serde(rename_all = "camelCase")] 等必要属性，添加文档注释（///）。',
+		kotlin:
+			'生成 Kotlin data class，使用 kotlinx.serialization 的 @Serializable 与 @SerialName，添加 KDoc。',
+		swift:
+			'生成 Swift struct，遵循 Codable，使用 CodingKeys 映射 JSON 字段名，添加必要注释。',
+		java: '生成 Java record 或 POJO，使用 Jackson 注解（如 @JsonProperty），添加 Javadoc。',
+		csharp:
+			'生成 C# record 或 class，使用 System.Text.Json 的 JsonPropertyName 特性，添加 XML 文档注释。',
+		'json-schema':
+			'生成符合 JSON Schema Draft 2020-12（或兼容 Draft-07）的单个 schema 对象：包含 type、properties、required、items、description 等；根对象可作为 responses/body 的结构。',
+		zod: '生成 Zod 3 schema（import { z } from "zod"），使用 z.object、z.array、z.union、z.literal 等组合出请求体与响应体的类型；可导出推断类型 type X = z.infer<typeof schema>。',
+		protobuf:
+			'生成 Protocol Buffers v3 的 message 定义（syntax = "proto3";），字段使用合适的标量类型与 repeated/map，添加注释。',
 	};
 
 	const promptPayload = {
@@ -214,6 +253,84 @@ export async function generateTypeDefinition(
 		};
 	} catch (error) {
 		console.error('[TypeDefinition Error]', {
+			error,
+			baseURL: settings.ai.baseUrl,
+			model: settings.ai.model,
+			language,
+		});
+		throw error;
+	}
+}
+
+const CRAWLER_INSTRUCTIONS: Record<CrawlerCodeLanguage, string> = {
+	'ts-fetch':
+		'使用 TypeScript + 原生 fetch（假定 Node 18+ 或带 DOM fetch 的环境）。输出完整可运行示例：包含 URL、method、headers 与可选 body；用 async/await；解析 JSON；敏感信息用环境变量或占位符。',
+	'js-fetch':
+		'使用 JavaScript + 原生 fetch。输出完整可运行示例（可在浏览器控制台或 Node 18+ 运行）。',
+	'python-requests':
+		'使用 Python `requests` 库。输出完整脚本：session 或单次请求、headers、json/data 参数、response.raise_for_status()、解析 JSON。',
+	'python-httpx':
+		'使用 Python `httpx`（同步或 async 任选其一，注明依赖）。完整示例含 headers 与 body。',
+	'go-http':
+		'使用 Go 标准库 `net/http`。输出 package main 或可复用的函数：构造 Request、设置 Header、读取 Body、json.Unmarshal 示例。',
+	curl: '输出一段可在终端执行的 curl 命令（多行用 \\ 续行）。不要内置真实密钥；用占位符说明需替换的 Cookie/Token。',
+	'node-axios':
+		'使用 Node.js + axios（TypeScript 或 JS 均可）。完整示例含 baseURL/headers/data、错误处理与 JSON 解析。',
+};
+
+export async function generateCrawlerCode(
+	request: CapturedRequest,
+	settings: ExtensionSettings,
+	language: CrawlerCodeLanguage,
+): Promise<CrawlerCodeResult> {
+	const refined = refineRequest(request, settings);
+	const compactRequestSummary = compactSummary(
+		refined.requestBodySummary,
+		MAX_REQUEST_SUMMARY_CHARS,
+	);
+	const compactResponseSummary = compactSummary(
+		refined.responseBodySummary,
+		MAX_RESPONSE_SUMMARY_CHARS,
+	);
+
+	const promptPayload = {
+		url: refined.url,
+		method: refined.method,
+		status: refined.status,
+		requestHeaders: refined.requestHeadersRedacted,
+		requestBodySummary: compactRequestSummary,
+		responseBodySummaryPreview: compactResponseSummary,
+		wasSanitized: refined.wasSanitized,
+	};
+
+	const client = new OpenAI({
+		apiKey: settings.ai.apiKey,
+		baseURL: settings.ai.baseUrl,
+		dangerouslyAllowBrowser: true,
+	});
+
+	const prompt = [
+		'你是一个 HTTP 客户端代码生成助手。',
+		'用户需要「复现当前捕获的接口调用」的示例代码，用于调试自动化或合法抓取自己有权限的数据。',
+		'务必遵守：不要在代码中写入真实 Cookie、Token、API Key；用占位符或从环境变量读取；注明请求目标仅限用户有权访问的资源。',
+		CRAWLER_INSTRUCTIONS[language],
+		'只返回代码或 curl 文本，不要 Markdown 围栏或额外解释。',
+		`输入 JSON：${JSON.stringify(promptPayload)}`,
+	].join('\n');
+
+	try {
+		const completion = await client.chat.completions.create({
+			model: settings.ai.model,
+			temperature: 0.2,
+			messages: [{ role: 'user', content: prompt }],
+		});
+		const content = completion.choices[0]?.message?.content ?? '';
+		return {
+			code: coerceTypeDefinition(content),
+			language,
+		};
+	} catch (error) {
+		console.error('[CrawlerCode Error]', {
 			error,
 			baseURL: settings.ai.baseUrl,
 			model: settings.ai.model,
