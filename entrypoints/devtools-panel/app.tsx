@@ -1,5 +1,6 @@
 import { Typography } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { appendUniqueRequestByPath } from '@/lib/capture-list';
 import {
 	buildExportRecords,
 	downloadTextFile,
@@ -21,6 +22,10 @@ import { StatusBar } from './components/status-bar';
 import { useAnalysisQueue } from './hooks/use-analysis-queue';
 import { useBridgeConnection } from './hooks/use-bridge-connection';
 
+/**
+ * Main DevTools panel UI. It receives captured requests from the background
+ * bridge, keeps a de-duplicated visible list, and queues AI analysis work.
+ */
 export default function App() {
 	const [settings, setSettings] = useState<ExtensionSettings | null>(null);
 	const [capturedCount, setCapturedCount] = useState(0);
@@ -31,9 +36,11 @@ export default function App() {
 		useState<CapturedRequest | null>(null);
 	const [selectedExportIds, setSelectedExportIds] = useState<string[]>([]);
 
+	const capturedRequestsRef = useRef<CapturedRequest[]>([]);
 	const requestsByIdRef = useRef<Record<string, CapturedRequest>>({});
 
 	useEffect(() => {
+		capturedRequestsRef.current = capturedRequests;
 		const byId: Record<string, CapturedRequest> = {};
 		for (const req of capturedRequests) {
 			byId[req.captureId] = req;
@@ -44,25 +51,23 @@ export default function App() {
 	const { analysisById, analyzingIds, enqueueAnalysis } =
 		useAnalysisQueue(settings);
 
+	/**
+	 * Add a captured request once per endpoint path and immediately enqueue the
+	 * same request for analysis without relying on async React state updaters.
+	 */
 	const handleRequestCaptured = useCallback(
 		(request: CapturedRequest) => {
-			let added = false;
-			setCapturedRequests((prev) => {
-				const pathKey = normalizePathUrl(request.url);
-				const duplicated = prev.some(
-					(item) => normalizePathUrl(item.url) === pathKey,
-				);
-				if (duplicated) {
-					return prev;
-				}
-				added = true;
-				const next = [request, ...prev];
-				return next.slice(0, 300);
-			});
-			if (added) {
-				setCapturedCount((n) => n + 1);
-				enqueueAnalysis(request);
+			const next = appendUniqueRequestByPath(
+				capturedRequestsRef.current,
+				request,
+			);
+			if (!next.added) {
+				return;
 			}
+			capturedRequestsRef.current = next.requests;
+			setCapturedRequests(next.requests);
+			setCapturedCount((n) => n + 1);
+			enqueueAnalysis(request);
 		},
 		[enqueueAnalysis],
 	);
@@ -97,8 +102,10 @@ export default function App() {
 		};
 	}, []);
 
+	/** Reset the visible capture session and notify the DevTools bridge. */
 	const handleClearCaptures = () => {
 		setCapturedCount(0);
+		capturedRequestsRef.current = [];
 		setCapturedRequests([]);
 		setSelectedExportIds([]);
 		sendToBridge({
@@ -107,6 +114,7 @@ export default function App() {
 		});
 	};
 
+	/** Export the currently selected capture rows in the requested format. */
 	const exportSelected = useCallback(
 		(format: 'json' | 'markdown') => {
 			const selectedSet = new Set(selectedExportIds);
@@ -131,6 +139,7 @@ export default function App() {
 		[analysisById, capturedRequests, selectedExportIds],
 	);
 
+	/** Retry AI analysis for a row that is still present in the capture table. */
 	const handleRetryAnalysis = (captureId: string) => {
 		const req = requestsByIdRef.current[captureId];
 		if (req) {
@@ -197,13 +206,4 @@ export default function App() {
 			/>
 		</div>
 	);
-}
-
-function normalizePathUrl(raw: string): string {
-	try {
-		const u = new URL(raw);
-		return `${u.origin}${u.pathname}`;
-	} catch {
-		return raw;
-	}
 }
